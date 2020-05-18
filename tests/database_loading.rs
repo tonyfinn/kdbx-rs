@@ -16,18 +16,18 @@ fn load_kdbx4_argon2() {
     let db = database::read(file).unwrap();
 
     assert_eq!(db.header().cipher, crypto::Cipher::Aes256);
-    assert_eq!(db.header().compression_type, header::CompressionType::Gzip);
+    assert_eq!(db.header().compression_type, header::CompressionType::None);
     assert_eq!(db.header().other_headers, Vec::new());
     assert_eq!(
         db.header().master_seed,
         vec![
-            207, 62, 53, 60, 198, 212, 109, 146, 204, 133, 64, 114, 244, 214, 170, 180, 81, 74,
-            233, 18, 139, 11, 1, 2, 141, 45, 120, 151, 48, 36, 249, 63
+            178, 96, 53, 92, 11, 123, 129, 106, 162, 5, 167, 71, 204, 76, 187, 247, 58, 243, 196,
+            145, 95, 83, 172, 11, 163, 211, 17, 111, 128, 35, 1, 203
         ]
     );
     assert_eq!(
         db.header().encryption_iv,
-        vec![69, 186, 132, 133, 27, 44, 62, 50, 166, 98, 75, 127, 168, 82, 62, 81]
+        vec![153, 129, 101, 36, 161, 230, 64, 41, 228, 230, 7, 235, 197, 40, 230, 5]
     );
     assert_eq!(
         db.header().kdf_params,
@@ -37,8 +37,8 @@ fn load_kdbx4_argon2() {
             memory_bytes: 65536 * 1024,
             version: 0x13,
             salt: vec![
-                138, 66, 92, 254, 173, 216, 129, 158, 145, 34, 248, 226, 224, 114, 148, 9, 225, 12,
-                0, 104, 208, 126, 97, 222, 199, 146, 1, 20, 50, 190, 183, 29
+                218, 60, 221, 254, 167, 184, 253, 73, 185, 140, 245, 215, 114, 183, 61, 196, 79,
+                39, 103, 115, 53, 157, 238, 99, 63, 88, 99, 83, 60, 134, 121, 103
             ],
         }
     );

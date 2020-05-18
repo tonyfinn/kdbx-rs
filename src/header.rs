@@ -3,6 +3,7 @@ use crate::utils;
 use crate::variant_dict;
 use sha2::{Digest, Sha256};
 use std::convert::{TryFrom, TryInto};
+use std::marker::PhantomData;
 use std::io::Read;
 use thiserror::Error;
 use uuid::Uuid;
@@ -12,9 +13,9 @@ pub enum Error {
     #[error("Error reading database header - {0}")]
     Io(#[from] std::io::Error),
     #[error("Incompatible database - Malformed field of type {0:?}")]
-    MalformedField(HeaderType),
+    MalformedField(OuterHeaderId),
     #[error("Incompatible database - Missing required field of type {0:?}")]
-    MissingRequiredField(HeaderType),
+    MissingRequiredField(OuterHeaderId),
     #[error("Incompatible database - Missing paramater {0:?} for KDF {1:?}")]
     MissingKdfParam(String, crypto::KdfAlgorithm),
     #[error("Corrupt database - Header Checksum failed")]
@@ -32,7 +33,7 @@ impl TryFrom<variant_dict::VariantDict> for crypto::KdfOptions {
             .remove("$UUID")
             .and_then(|uuid_val| uuid_val.try_into().ok())
             .and_then(|array: Vec<u8>| Uuid::from_slice(&array).ok())
-            .ok_or_else(|| Error::MalformedField(HeaderType::KdfParameters))?;
+            .ok_or_else(|| Error::MalformedField(OuterHeaderId::KdfParameters))?;
 
         let kdf_algorithm = crypto::KdfAlgorithm::from(uuid.clone());
 
@@ -191,8 +192,12 @@ impl From<u32> for CompressionType {
     }
 }
 
+pub trait HeaderId: From<u8> + Into<u8> {
+    fn is_final(&self) -> bool;
+}
+
 #[derive(Debug, PartialEq, Eq, PartialOrd, Ord, Hash, Clone, Copy)]
-pub enum HeaderType {
+pub enum OuterHeaderId {
     EndOfHeader,
     Comment,
     CipherId,
@@ -209,45 +214,91 @@ pub enum HeaderType {
     Unknown(u8),
 }
 
-impl From<u8> for HeaderType {
-    fn from(id: u8) -> HeaderType {
+impl From<u8> for OuterHeaderId {
+    fn from(id: u8) -> OuterHeaderId {
         match id {
-            0 => HeaderType::EndOfHeader,
-            1 => HeaderType::Comment,
-            2 => HeaderType::CipherId,
-            3 => HeaderType::CompressionFlags,
-            4 => HeaderType::MasterSeed,
-            5 => HeaderType::LegacyTransformSeed,
-            6 => HeaderType::LegacyTransformRounds,
-            7 => HeaderType::EncryptionIv,
-            8 => HeaderType::ProtectedStreamKey,
-            9 => HeaderType::StreamStartBytes,
-            10 => HeaderType::InnerRandomStreamId,
-            11 => HeaderType::KdfParameters,
-            12 => HeaderType::PublicCustomData,
-            x => HeaderType::Unknown(x),
+            0 => OuterHeaderId::EndOfHeader,
+            1 => OuterHeaderId::Comment,
+            2 => OuterHeaderId::CipherId,
+            3 => OuterHeaderId::CompressionFlags,
+            4 => OuterHeaderId::MasterSeed,
+            5 => OuterHeaderId::LegacyTransformSeed,
+            6 => OuterHeaderId::LegacyTransformRounds,
+            7 => OuterHeaderId::EncryptionIv,
+            8 => OuterHeaderId::ProtectedStreamKey,
+            9 => OuterHeaderId::StreamStartBytes,
+            10 => OuterHeaderId::InnerRandomStreamId,
+            11 => OuterHeaderId::KdfParameters,
+            12 => OuterHeaderId::PublicCustomData,
+            x => OuterHeaderId::Unknown(x),
         }
     }
 }
 
-impl Into<u8> for HeaderType {
+impl Into<u8> for OuterHeaderId {
     fn into(self) -> u8 {
         match self {
-            HeaderType::EndOfHeader => 0,
-            HeaderType::Comment => 1,
-            HeaderType::CipherId => 2,
-            HeaderType::CompressionFlags => 3,
-            HeaderType::MasterSeed => 4,
-            HeaderType::LegacyTransformSeed => 5,
-            HeaderType::LegacyTransformRounds => 6,
-            HeaderType::EncryptionIv => 7,
-            HeaderType::ProtectedStreamKey => 8,
-            HeaderType::StreamStartBytes => 9,
-            HeaderType::InnerRandomStreamId => 10,
-            HeaderType::KdfParameters => 11,
-            HeaderType::PublicCustomData => 12,
-            HeaderType::Unknown(x) => x,
+            OuterHeaderId::EndOfHeader => 0,
+            OuterHeaderId::Comment => 1,
+            OuterHeaderId::CipherId => 2,
+            OuterHeaderId::CompressionFlags => 3,
+            OuterHeaderId::MasterSeed => 4,
+            OuterHeaderId::LegacyTransformSeed => 5,
+            OuterHeaderId::LegacyTransformRounds => 6,
+            OuterHeaderId::EncryptionIv => 7,
+            OuterHeaderId::ProtectedStreamKey => 8,
+            OuterHeaderId::StreamStartBytes => 9,
+            OuterHeaderId::InnerRandomStreamId => 10,
+            OuterHeaderId::KdfParameters => 11,
+            OuterHeaderId::PublicCustomData => 12,
+            OuterHeaderId::Unknown(x) => x,
         }
+    }
+}
+
+impl HeaderId for OuterHeaderId {
+    fn is_final(&self) -> bool {
+        return *self == OuterHeaderId::EndOfHeader;
+    }
+}
+
+#[derive(Debug, PartialEq, Eq, PartialOrd, Ord, Hash, Clone, Copy)]
+pub enum InnerHeaderId {
+    EndOfHeader,
+    InnerRandomStreamId,
+    InnerRandomStreamKey,
+    Binary,
+    Unknown(u8),
+}
+
+
+impl From<u8> for InnerHeaderId {
+    fn from(id: u8) -> InnerHeaderId {
+        match id {
+            0 => InnerHeaderId::EndOfHeader,
+            1 => InnerHeaderId::InnerRandomStreamId,
+            2 => InnerHeaderId::InnerRandomStreamKey,
+            3 => InnerHeaderId::Binary,
+            x => InnerHeaderId::Unknown(x),
+        }
+    }
+}
+
+impl Into<u8> for InnerHeaderId {
+    fn into(self) -> u8 {
+        match self {
+            InnerHeaderId::EndOfHeader => 0,
+            InnerHeaderId::InnerRandomStreamId => 1,
+            InnerHeaderId::InnerRandomStreamKey => 2,
+            InnerHeaderId::Binary => 3,
+            InnerHeaderId::Unknown(x) => x,
+        }
+    }
+}
+
+impl HeaderId for InnerHeaderId {
+    fn is_final(&self) -> bool {
+        return *self == InnerHeaderId::EndOfHeader;
     }
 }
 
@@ -256,31 +307,31 @@ pub struct KdbxHeaderBuilder {
     pub cipher: Option<crypto::Cipher>,
     pub kdf_params: Option<crypto::KdfOptions>,
     pub compression_type: Option<CompressionType>,
-    pub other_headers: Vec<HeaderField>,
+    pub other_headers: Vec<HeaderField<OuterHeaderId>>,
     pub master_seed: Option<Vec<u8>>,
     pub encryption_iv: Option<Vec<u8>>,
 }
 
 impl KdbxHeaderBuilder {
-    fn add_header(&mut self, header: HeaderField) -> Result<()> {
+    fn add_header(&mut self, header: HeaderField<OuterHeaderId>) -> Result<()> {
         match header.ty {
-            HeaderType::CipherId => {
+            OuterHeaderId::CipherId => {
                 let cipher = Uuid::from_slice(&header.data)
                     .map(From::from)
                     .map_err(|_e| Error::MalformedField(header.ty))?;
 
                 self.cipher = Some(cipher);
             }
-            HeaderType::KdfParameters => {
+            OuterHeaderId::KdfParameters => {
                 self.kdf_params = Some(
                     variant_dict::parse_variant_dict(&*header.data)
-                        .map_err(|_| Error::MalformedField(HeaderType::KdfParameters))?
+                        .map_err(|_| Error::MalformedField(OuterHeaderId::KdfParameters))?
                         .try_into()?,
                 );
             }
-            HeaderType::CompressionFlags => {
+            OuterHeaderId::CompressionFlags => {
                 if header.data.len() != 4 {
-                    return Err(Error::MalformedField(HeaderType::CompressionFlags));
+                    return Err(Error::MalformedField(OuterHeaderId::CompressionFlags));
                 }
                 self.compression_type = Some(CompressionType::from(u32::from_le_bytes([
                     header.data[0],
@@ -289,8 +340,8 @@ impl KdbxHeaderBuilder {
                     header.data[3],
                 ])))
             }
-            HeaderType::EncryptionIv => self.encryption_iv = Some(header.data),
-            HeaderType::MasterSeed => self.master_seed = Some(header.data),
+            OuterHeaderId::EncryptionIv => self.encryption_iv = Some(header.data),
+            OuterHeaderId::MasterSeed => self.master_seed = Some(header.data),
             _ => self.other_headers.push(header),
         }
 
@@ -301,52 +352,56 @@ impl KdbxHeaderBuilder {
         Ok(KdbxHeader {
             cipher: self
                 .cipher
-                .ok_or_else(|| Error::MissingRequiredField(HeaderType::CipherId))?,
+                .ok_or_else(|| Error::MissingRequiredField(OuterHeaderId::CipherId))?,
             compression_type: self
                 .compression_type
-                .ok_or_else(|| Error::MissingRequiredField(HeaderType::CompressionFlags))?,
+                .ok_or_else(|| Error::MissingRequiredField(OuterHeaderId::CompressionFlags))?,
             master_seed: self
                 .master_seed
-                .ok_or_else(|| Error::MissingRequiredField(HeaderType::MasterSeed))?,
+                .ok_or_else(|| Error::MissingRequiredField(OuterHeaderId::MasterSeed))?,
             encryption_iv: self
                 .encryption_iv
-                .ok_or_else(|| Error::MissingRequiredField(HeaderType::EncryptionIv))?,
+                .ok_or_else(|| Error::MissingRequiredField(OuterHeaderId::EncryptionIv))?,
             kdf_params: self
                 .kdf_params
-                .ok_or_else(|| Error::MissingRequiredField(HeaderType::KdfParameters))?,
+                .ok_or_else(|| Error::MissingRequiredField(OuterHeaderId::KdfParameters))?,
             other_headers: self.other_headers,
         })
     }
 }
 
 #[derive(Debug, PartialEq, Eq)]
-pub struct HeaderField {
-    ty: HeaderType,
+pub struct HeaderField<T> {
+    ty: T,
     data: Vec<u8>,
 }
 
-#[derive(Debug, PartialEq, Eq)]
-pub struct KdbxHeader {
-    pub cipher: crypto::Cipher,
-    pub kdf_params: crypto::KdfOptions,
-    pub compression_type: CompressionType,
-    pub other_headers: Vec<HeaderField>,
-    pub master_seed: Vec<u8>,
-    pub encryption_iv: Vec<u8>,
+pub struct HeaderParser<'a, R: Read + 'a, T: HeaderId> {
+    _id: PhantomData<T>,
+    reader: &'a mut R,
 }
 
-impl KdbxHeader {
-    pub(crate) fn read_one_header<R: Read>(
-        caching_reader: &mut utils::CachingReader<R>,
-    ) -> Result<HeaderField> {
+impl<'a, R, T> HeaderParser<'a, R, T> 
+    where R: Read + 'a,
+        T: HeaderId
+{
+
+    pub(crate) fn new(reader: &'a mut R) -> HeaderParser<'a, R, T> {
+        HeaderParser {
+            _id: PhantomData,
+            reader,
+        }
+    }
+    
+    pub(crate) fn read_one_header(&mut self) -> Result<HeaderField<T>> {
         let mut ty_buffer = [0u8];
-        caching_reader.read_exact(&mut ty_buffer)?;
-        let ty = HeaderType::from(ty_buffer[0]);
+        self.reader.read_exact(&mut ty_buffer)?;
+        let ty = T::from(ty_buffer[0]);
         let mut len_buffer = [0u8; 4];
-        caching_reader.read_exact(&mut len_buffer)?;
+        self.reader.read_exact(&mut len_buffer)?;
         let len = u32::from_le_bytes(len_buffer.clone());
         let mut header_buffer = utils::buffer(len as usize);
-        caching_reader.read_exact(&mut header_buffer)?;
+        self.reader.read_exact(&mut header_buffer)?;
 
         Ok(HeaderField {
             ty,
@@ -354,15 +409,36 @@ impl KdbxHeader {
         })
     }
 
+    pub(crate) fn read_all_headers(&mut self) -> Result<Vec<HeaderField<T>>> {
+        let mut headers = Vec::new();
+        let mut header = self.read_one_header()?;
+        while !header.ty.is_final() {
+            headers.push(header);
+            header = self.read_one_header()?;
+        }
+
+        Ok(headers)
+    }
+}
+
+#[derive(Debug, PartialEq, Eq)]
+pub struct KdbxHeader {
+    pub cipher: crypto::Cipher,
+    pub kdf_params: crypto::KdfOptions,
+    pub compression_type: CompressionType,
+    pub other_headers: Vec<HeaderField<OuterHeaderId>>,
+    pub master_seed: Vec<u8>,
+    pub encryption_iv: Vec<u8>,
+}
+
+impl KdbxHeader {
     pub(crate) fn read<R: Read>(
         mut caching_reader: utils::CachingReader<R>,
     ) -> Result<(KdbxHeader, Vec<u8>)> {
         let mut header_builder = KdbxHeaderBuilder::default();
-
-        let mut header = KdbxHeader::read_one_header(&mut caching_reader)?;
-        while header.ty != HeaderType::EndOfHeader {
+        let headers = HeaderParser::new(&mut caching_reader).read_all_headers()?;
+        for header in headers {
             header_builder.add_header(header)?;
-            header = KdbxHeader::read_one_header(&mut caching_reader)?;
         }
 
         let (header_bin, input) = caching_reader.into_inner();

@@ -3,7 +3,7 @@ use crate::header;
 use crate::stream;
 use crate::utils;
 
-use block_modes::block_padding::{Padding, Pkcs7, UnpadError};
+use block_modes::block_padding::{Padding, Pkcs7};
 use sha2::{Digest, Sha256};
 use std::io::Read;
 use thiserror::Error;
@@ -97,14 +97,23 @@ impl KdbxDatabase<Locked> {
         &self.inner.header
     }
 
-    pub(crate) fn decrypt_data(&self, master_key: &crypto::MasterKey) -> Result<Vec<u8>, UnlockError> {
+    pub(crate) fn decrypt_data(
+        &self,
+        master_key: &crypto::MasterKey,
+    ) -> Result<Vec<u8>, UnlockError> {
         let hmac_key = master_key.hmac_key(&self.inner.header.master_seed);
         let cipher_key = master_key.cipher_key(&self.inner.header.master_seed);
-        let mut input_stream = stream::kdbx4_read_stream(&*self.inner.encrypted_data, hmac_key, cipher_key, self.inner.header.cipher, &self.inner.header.encryption_iv, self.inner.header.compression_type)?;
+        let mut input_stream = stream::kdbx4_read_stream(
+            &*self.inner.encrypted_data,
+            hmac_key,
+            cipher_key,
+            self.inner.header.cipher,
+            &self.inner.header.encryption_iv,
+            self.inner.header.compression_type,
+        )?;
         let mut output_buffer = Vec::new();
         input_stream.read_to_end(&mut output_buffer)?;
-        let unpadded = Pkcs7::unpad(&output_buffer)
-            .map_err(|_| UnlockError::BadPadding)?;
+        let unpadded = Pkcs7::unpad(&output_buffer).map_err(|_| UnlockError::BadPadding)?;
         let actual_len = unpadded.len();
         output_buffer.truncate(actual_len);
         Ok(output_buffer)
@@ -127,14 +136,12 @@ impl KdbxDatabase<Locked> {
 
         if header_block_key.verify_header_block(&self.inner.hmac, &self.inner.header_data) {
             match self.decrypt_data(&master_key) {
-                Ok(data) => {
-                    Ok(KdbxDatabase {
-                        inner: Unlocked {
-                            header: self.inner.header,
-                            decrypted_data: data,
-                        },
-                    })
-                },
+                Ok(data) => Ok(KdbxDatabase {
+                    inner: Unlocked {
+                        header: self.inner.header,
+                        decrypted_data: data,
+                    },
+                }),
                 Err(e) => Err((e, self)),
             }
         } else {

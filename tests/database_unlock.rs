@@ -15,7 +15,5 @@ fn kdbx4_argon2() -> Result<(), database::UnlockError> {
 
     let db = database::read(file).unwrap();
     let key = crypto::CompositeKey::pwonly("kdbxrs");
-    db.unlock(key)
-        .map(|_| ())
-        .map_err(|e| e.0)
+    db.unlock(key).map(|_| ()).map_err(|e| e.0)
 }
