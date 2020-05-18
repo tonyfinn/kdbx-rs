@@ -1,0 +1,99 @@
+{
+    "version": "0.2.0",
+    "configurations": [
+        {
+            "type": "lldb",
+            "request": "launch",
+            "name": "Debug unit tests in library 'kdbx-rs'",
+            "cargo": {
+                "args": [
+                    "test",
+                    "--no-run",
+                    "--lib",
+                    "--package=kdbx-rs"
+                ],
+                "filter": {
+                    "name": "kdbx-rs",
+                    "kind": "lib"
+                }
+            },
+            "args": [],
+            "cwd": "${workspaceFolder}"
+        },
+        {
+            "type": "lldb",
+            "request": "launch",
+            "name": "Debug executable 'kdbx-rs'",
+            "cargo": {
+                "args": [
+                    "build",
+                    "--bin=kdbx-rs",
+                    "--package=kdbx-rs"
+                ],
+                "filter": {
+                    "name": "kdbx-rs",
+                    "kind": "bin"
+                }
+            },
+            "args": ["res/kdbx4-argon2.kdbx"],
+            "cwd": "${workspaceFolder}"
+        },
+        {
+            "type": "lldb",
+            "request": "launch",
+            "name": "Debug unit tests in executable 'kdbx-rs'",
+            "cargo": {
+                "args": [
+                    "test",
+                    "--no-run",
+                    "--bin=kdbx-rs",
+                    "--package=kdbx-rs"
+                ],
+                "filter": {
+                    "name": "kdbx-rs",
+                    "kind": "bin"
+                }
+            },
+            "args": [],
+            "cwd": "${workspaceFolder}"
+        },
+        {
+            "type": "lldb",
+            "request": "launch",
+            "name": "Debug integration test 'database_loading'",
+            "cargo": {
+                "args": [
+                    "test",
+                    "--no-run",
+                    "--test=database_loading",
+                    "--package=kdbx-rs"
+                ],
+                "filter": {
+                    "name": "database_loading",
+                    "kind": "test"
+                }
+            },
+            "args": [],
+            "cwd": "${workspaceFolder}"
+        },
+        {
+            "type": "lldb",
+            "request": "launch",
+            "name": "Debug integration test 'database_unlock'",
+            "cargo": {
+                "args": [
+                    "test",
+                    "--no-run",
+                    "--test=database_unlock",
+                    "--package=kdbx-rs"
+                ],
+                "filter": {
+                    "name": "database_unlock",
+                    "kind": "test"
+                }
+            },
+            "args": [],
+            "cwd": "${workspaceFolder}"
+        }
+    ]
+}
