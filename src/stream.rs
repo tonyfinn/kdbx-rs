@@ -3,7 +3,7 @@ use crate::header;
 use aes::block_cipher_trait::generic_array::GenericArray;
 use aes::block_cipher_trait::BlockCipher;
 use aes::{Aes128, Aes256};
-use block_modes::block_padding::Pkcs7;
+use block_modes::block_padding::{Padding, Pkcs7};
 use block_modes::{BlockMode, Cbc};
 use std::io;
 use thiserror::Error;
@@ -85,6 +85,8 @@ where
     buffer: GenericArray<u8, C::BlockSize>,
     buf_idx: usize,
     cipher: Cbc<C, Pkcs7>,
+    first_read: bool,
+    peek_byte: Option<u8>,
 }
 
 impl<C, R> BlockCipherReader<C, R>
@@ -102,12 +104,22 @@ where
             cipher: Cbc::new_var(&key.0, &iv)?,
             buffer: GenericArray::default(),
             buf_idx: 0,
+            first_read: true,
+            peek_byte: None,
         })
     }
 
     fn buffer_next_block(&mut self) -> io::Result<usize> {
         self.buf_idx = 0;
         let mut buffered_bytes = 0;
+
+        if let Some(byte) = self.peek_byte {
+            self.buffer[0] = byte;
+            buffered_bytes = 1;
+        } else if !self.first_read {
+            return Ok(0);
+        }
+        self.first_read = false;
         while buffered_bytes < self.buffer.len() {
             let count = self.inner.read(&mut self.buffer[buffered_bytes..])?;
             if count == 0 && buffered_bytes != 0 {
@@ -123,13 +135,28 @@ where
             }
             buffered_bytes += count
         }
+
+        let mut peek_buf = [0u8];
+        let peek_len = self.inner.read(&mut peek_buf)?;
+        self.peek_byte = if peek_len > 0 {
+            Some(peek_buf[0])
+        } else {
+            None
+        };
+
         let mut blocks_to_decrypt = [std::mem::take(&mut self.buffer)];
         self.cipher.decrypt_blocks(&mut blocks_to_decrypt);
 
         let [decrypted_block] = blocks_to_decrypt;
         self.buffer = decrypted_block;
 
-        Ok(buffered_bytes)
+        if self.peek_byte.is_none() {
+            let unpadded = Pkcs7::unpad(&self.buffer)
+                .map_err(|_| io::Error::new(io::ErrorKind::InvalidData, "Bad padding"))?;
+            Ok(unpadded.len())
+        } else {
+            Ok(buffered_bytes)
+        }
     }
 }
 
@@ -141,7 +168,7 @@ where
     fn read(&mut self, buf: &mut [u8]) -> io::Result<usize> {
         let mut remaining_in_buffer = self.buffer.len() - self.buf_idx;
 
-        if remaining_in_buffer == 0 {
+        if remaining_in_buffer == 0 || self.first_read {
             remaining_in_buffer = self.buffer_next_block()?;
         }
         let copy_len = usize::min(remaining_in_buffer, buf.len());

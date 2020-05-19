@@ -3,7 +3,6 @@ use crate::header;
 use crate::stream;
 use crate::utils;
 
-use block_modes::block_padding::{Padding, Pkcs7};
 use sha2::{Digest, Sha256};
 use std::io::Read;
 use thiserror::Error;
@@ -68,8 +67,6 @@ pub enum UnlockError {
     KeyGen(#[from] crypto::KeyGenerationError),
     #[error("Decryption failed {0}")]
     Decrypt(#[from] std::io::Error),
-    #[error("Corrupt database - Invalid padding")]
-    BadPadding,
 }
 
 #[derive(Debug, PartialEq, Eq)]
@@ -113,9 +110,6 @@ impl KdbxDatabase<Locked> {
         )?;
         let mut output_buffer = Vec::new();
         input_stream.read_to_end(&mut output_buffer)?;
-        let unpadded = Pkcs7::unpad(&output_buffer).map_err(|_| UnlockError::BadPadding)?;
-        let actual_len = unpadded.len();
-        output_buffer.truncate(actual_len);
         Ok(output_buffer)
     }
 

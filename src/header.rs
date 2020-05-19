@@ -3,8 +3,8 @@ use crate::utils;
 use crate::variant_dict;
 use sha2::{Digest, Sha256};
 use std::convert::{TryFrom, TryInto};
-use std::marker::PhantomData;
 use std::io::Read;
+use std::marker::PhantomData;
 use thiserror::Error;
 use uuid::Uuid;
 
@@ -271,7 +271,6 @@ pub enum InnerHeaderId {
     Unknown(u8),
 }
 
-
 impl From<u8> for InnerHeaderId {
     fn from(id: u8) -> InnerHeaderId {
         match id {
@@ -381,18 +380,18 @@ pub struct HeaderParser<'a, R: Read + 'a, T: HeaderId> {
     reader: &'a mut R,
 }
 
-impl<'a, R, T> HeaderParser<'a, R, T> 
-    where R: Read + 'a,
-        T: HeaderId
+impl<'a, R, T> HeaderParser<'a, R, T>
+where
+    R: Read + 'a,
+    T: HeaderId,
 {
-
     pub(crate) fn new(reader: &'a mut R) -> HeaderParser<'a, R, T> {
         HeaderParser {
             _id: PhantomData,
             reader,
         }
     }
-    
+
     pub(crate) fn read_one_header(&mut self) -> Result<HeaderField<T>> {
         let mut ty_buffer = [0u8];
         self.reader.read_exact(&mut ty_buffer)?;
