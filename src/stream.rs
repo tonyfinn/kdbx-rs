@@ -1,5 +1,5 @@
+use crate::binary;
 use crate::crypto;
-use crate::header;
 use aes::block_cipher_trait::generic_array::GenericArray;
 use aes::block_cipher_trait::BlockCipher;
 use aes::{Aes128, Aes256};
@@ -184,14 +184,14 @@ pub(crate) fn kdbx4_read_stream<'a, R: io::Read + 'a>(
     inner: R,
     hmac_key: crypto::HmacKey,
     cipher_key: crypto::CipherKey,
-    cipher: crypto::Cipher,
+    cipher: binary::Cipher,
     iv: &[u8],
-    compression: header::CompressionType,
+    compression: binary::CompressionType,
 ) -> io::Result<Box<dyn io::Read + 'a>> {
     let buffered = io::BufReader::new(inner);
     let verified = HMacReader::new(buffered, hmac_key);
     let decrypted: Box<dyn io::Read> = match cipher {
-        crypto::Cipher::Aes256 => BlockCipherReader::<Aes256, _>::wrap(verified, cipher_key, iv)
+        binary::Cipher::Aes256 => BlockCipherReader::<Aes256, _>::wrap(verified, cipher_key, iv)
             .map(|r| Box::new(r) as Box<dyn io::Read>)
             .map_err(|_| {
                 io::Error::new(
@@ -199,7 +199,7 @@ pub(crate) fn kdbx4_read_stream<'a, R: io::Read + 'a>(
                     "Invalid cipher params - Could not create CBC block mode".to_string(),
                 )
             }),
-        crypto::Cipher::Aes128 => BlockCipherReader::<Aes128, _>::wrap(verified, cipher_key, iv)
+        binary::Cipher::Aes128 => BlockCipherReader::<Aes128, _>::wrap(verified, cipher_key, iv)
             .map(|r| Box::new(r) as Box<dyn io::Read>)
             .map_err(|_| {
                 io::Error::new(
@@ -213,9 +213,9 @@ pub(crate) fn kdbx4_read_stream<'a, R: io::Read + 'a>(
         )),
     }?;
     let decompressed: Box<dyn io::Read> = match compression {
-        header::CompressionType::None => Box::new(decrypted),
-        header::CompressionType::Gzip => Box::new(libflate::gzip::Decoder::new(decrypted)?),
-        header::CompressionType::Unknown(_) => {
+        binary::CompressionType::None => Box::new(decrypted),
+        binary::CompressionType::Gzip => Box::new(libflate::gzip::Decoder::new(decrypted)?),
+        binary::CompressionType::Unknown(_) => {
             return Err(io::Error::new(
                 io::ErrorKind::InvalidInput,
                 format!("Unsupported compression type {:?}", compression),

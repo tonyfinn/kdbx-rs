@@ -62,7 +62,10 @@ impl<'a, I: io::Read> CachingReader<'a, I> {
     }
 }
 
-pub fn to_hex_string(data: &[u8]) -> String {
+#[allow(dead_code)]
+/// Useful debugging method to convert a byte array to a hex string
+/// e.g. [0xf2, 0xa2, 0x12] => "f2a212"
+pub(crate) fn to_hex_string(data: &[u8]) -> String {
     let mut output = String::new();
 
     for byte in data {

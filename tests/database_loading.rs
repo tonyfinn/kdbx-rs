@@ -1,6 +1,4 @@
-use kdbx_rs::crypto;
-use kdbx_rs::database;
-use kdbx_rs::header;
+use kdbx_rs;
 use std::fs;
 use std::path::PathBuf;
 
@@ -13,10 +11,13 @@ fn load_kdbx4_argon2() {
 
     let file = fs::File::open(file_path).unwrap();
 
-    let db = database::read(file).unwrap();
+    let db = kdbx_rs::from_reader(file).unwrap();
 
-    assert_eq!(db.header().cipher, crypto::Cipher::Aes256);
-    assert_eq!(db.header().compression_type, header::CompressionType::Gzip);
+    assert_eq!(db.header().cipher, kdbx_rs::binary::Cipher::Aes256);
+    assert_eq!(
+        db.header().compression_type,
+        kdbx_rs::binary::CompressionType::Gzip
+    );
     assert_eq!(db.header().other_headers, Vec::new());
     assert_eq!(
         db.header().master_seed,
@@ -31,7 +32,7 @@ fn load_kdbx4_argon2() {
     );
     assert_eq!(
         db.header().kdf_params,
-        crypto::KdfOptions::Argon2 {
+        kdbx_rs::binary::KdfParams::Argon2 {
             iterations: 26,
             lanes: 2,
             memory_bytes: 65536 * 1024,
@@ -53,10 +54,10 @@ fn load_kdbx4_aes256() {
 
     let file = fs::File::open(file_path).unwrap();
 
-    let db = database::read(file).unwrap();
+    let db = kdbx_rs::from_reader(file).unwrap();
     assert_eq!(
         db.header().kdf_params,
-        crypto::KdfOptions::Aes {
+        kdbx_rs::binary::KdfParams::Aes {
             rounds: 33908044,
             salt: vec![
                 248, 143, 74, 209, 60, 251, 247, 195, 28, 176, 139, 132, 158, 203, 40, 14, 146, 7,
@@ -75,10 +76,10 @@ fn load_kdbx4_aes256_legacy() {
 
     let file = fs::File::open(file_path).unwrap();
 
-    let db = database::read(file).unwrap();
+    let db = kdbx_rs::from_reader(file).unwrap();
     assert_eq!(
         db.header().kdf_params,
-        crypto::KdfOptions::Aes {
+        kdbx_rs::binary::KdfParams::Aes {
             rounds: 31130267,
             salt: vec![
                 180, 76, 210, 106, 16, 174, 0, 214, 176, 158, 130, 118, 83, 207, 237, 52, 172, 84,

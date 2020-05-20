@@ -1,11 +1,10 @@
-use kdbx_rs::crypto;
-use kdbx_rs::database;
+use kdbx_rs;
 
 use std::fs;
 use std::path::PathBuf;
 
 #[test]
-fn kdbx4_argon2() -> Result<(), database::UnlockError> {
+fn kdbx4_argon2() -> Result<(), kdbx_rs::Error> {
     let mut file_path = PathBuf::new();
     file_path.push(env!("CARGO_MANIFEST_DIR"));
     file_path.push("res");
@@ -13,7 +12,7 @@ fn kdbx4_argon2() -> Result<(), database::UnlockError> {
 
     let file = fs::File::open(file_path).unwrap();
 
-    let db = database::read(file).unwrap();
-    let key = crypto::CompositeKey::pwonly("kdbxrs");
-    db.unlock(key).map(|_| ()).map_err(|e| e.0)
+    let db = kdbx_rs::from_reader(file).unwrap();
+    let key = kdbx_rs::CompositeKey::from_password("kdbxrs");
+    db.unlock(&key).map(|_| ()).map_err(|e| e.0.into())
 }

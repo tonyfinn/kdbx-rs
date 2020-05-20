@@ -1,115 +1,33 @@
-use crate::utils;
+use crate::binary;
 
 use hmac::{Hmac, Mac};
 use sha2::{Digest, Sha256, Sha512};
 use std::string::ToString;
 use thiserror::Error;
-
-pub const AES128_UUID: &str = "61ab05a1-9464-41c3-8d74-3a563df8dd35";
-pub const AES256_UUID: &str = "31c1f2e6-bf71-4350-be58-05216afc5aff";
-pub const TWOFISH_UUID: &str = "ad68f29f-576f-4bb9-a36a-d47af965346c";
-pub const CHACHA20_UUID: &str = "d6038a2b-8b6f-4cb5-a524-339a31dbb59a";
-pub const AES_3_1_UUID: &str = "c9d9f39a-628a-4460-bf74-0d08c18a4fea";
-pub const AES_4_UUID: &str = "7c02bb82-79a7-4ac0-927d-114a00648238";
-pub const ARGON2_UUID: &str = "ef636ddf-8c29-444b-91f7-a9a403e30a0c";
-
 type HmacSha256 = Hmac<Sha256>;
 
-#[derive(PartialEq, Eq, Debug, Copy, Clone)]
-pub enum Cipher {
-    Aes128,
-    Aes256,
-    TwoFish,
-    ChaCha20,
-    Unknown(uuid::Uuid),
-}
-
-const CIPHER_TABLE: [(&str, Cipher); 4] = [
-    (AES128_UUID, Cipher::Aes128),
-    (AES256_UUID, Cipher::Aes256),
-    (TWOFISH_UUID, Cipher::TwoFish),
-    (CHACHA20_UUID, Cipher::ChaCha20),
-];
-
-impl From<uuid::Uuid> for Cipher {
-    fn from(uuid: uuid::Uuid) -> Cipher {
-        utils::value_from_uuid_table(&CIPHER_TABLE, uuid).unwrap_or_else(|| Cipher::Unknown(uuid))
-    }
-}
-
-impl From<Cipher> for uuid::Uuid {
-    fn from(cipher: Cipher) -> uuid::Uuid {
-        match cipher {
-            Cipher::Unknown(uuid) => uuid,
-            _ => utils::uuid_from_uuid_table(&CIPHER_TABLE, cipher).unwrap(),
-        }
-    }
-}
-
-#[derive(Debug, PartialEq, Eq, Clone, Copy)]
-#[allow(non_camel_case_types)]
-pub enum KdfAlgorithm {
-    Argon2,
-    Aes256_Kdbx4,
-    Aes256_Kdbx3_1,
-    Unknown(uuid::Uuid),
-}
-
-pub(crate) const KDF_TABLE: [(&str, KdfAlgorithm); 3] = [
-    (AES_3_1_UUID, KdfAlgorithm::Aes256_Kdbx3_1),
-    (AES_4_UUID, KdfAlgorithm::Aes256_Kdbx4),
-    (ARGON2_UUID, KdfAlgorithm::Argon2),
-];
-
-impl From<uuid::Uuid> for KdfAlgorithm {
-    fn from(uuid: uuid::Uuid) -> KdfAlgorithm {
-        utils::value_from_uuid_table(&KDF_TABLE, uuid)
-            .unwrap_or_else(|| KdfAlgorithm::Unknown(uuid))
-    }
-}
-
-impl From<KdfAlgorithm> for uuid::Uuid {
-    fn from(algo: KdfAlgorithm) -> uuid::Uuid {
-        match algo {
-            KdfAlgorithm::Unknown(uuid) => uuid,
-            _ => utils::uuid_from_uuid_table(&KDF_TABLE, algo).unwrap(),
-        }
-    }
-}
-
-#[derive(Debug, PartialEq, Eq)]
-pub enum KdfOptions {
-    Argon2 {
-        memory_bytes: u64,
-        version: u32,
-        salt: Vec<u8>,
-        lanes: u32,
-        // aka passes, aka It
-        iterations: u64,
-    },
-    Aes {
-        rounds: u64,
-        salt: Vec<u8>,
-    },
-    Other {
-        uuid: uuid::Uuid,
-        params: crate::variant_dict::VariantDict,
-    },
-}
-
 /// Credentials needed to unlock the database
+///
+/// Currently it supports unlocking a database with a combination
+/// of password, keyfile or both.
+///
+/// For the compmon case of creating credentials from just a password,
+/// you can use `CompositeKey::from_password("abcdef")`. Otherwise,
+/// you can use `CompositeKey::new(Some(pw), Some(keyfile))` to provide both.
 pub struct CompositeKey {
     pw: Option<String>,
     keyfile: Option<Vec<u8>>,
 }
 
 impl CompositeKey {
+    /// Create a new composite key
+    pub fn new(pw: Option<String>, keyfile: Option<Vec<u8>>) -> CompositeKey {
+        CompositeKey { pw, keyfile }
+    }
+
     /// Utility method for making a key with just a password
-    pub fn pwonly(pw: &str) -> CompositeKey {
-        CompositeKey {
-            pw: Some(pw.into()),
-            keyfile: None,
-        }
+    pub fn from_password(pw: &str) -> CompositeKey {
+        CompositeKey::new(Some(pw.into()), None)
     }
 
     fn composed(&self) -> Vec<u8> {
@@ -128,10 +46,10 @@ impl CompositeKey {
     /// Generate a master key used to derive all other keys
     pub(crate) fn master_key(
         &self,
-        kdf_options: &KdfOptions,
+        kdf_options: &binary::KdfParams,
     ) -> Result<MasterKey, KeyGenerationError> {
         match kdf_options {
-            KdfOptions::Argon2 {
+            binary::KdfParams::Argon2 {
                 memory_bytes,
                 version,
                 iterations,
@@ -235,27 +153,5 @@ pub enum KeyGenerationError {
     #[error("Could not generate key: {0}")]
     KeyGeneration(String),
     #[error("Generation for KDF Options: {0:?} not implemented")]
-    UnimplementedKdfOptions(KdfOptions),
-}
-
-#[cfg(test)]
-mod tests {
-    use super::*;
-
-    use uuid::Uuid;
-    #[test]
-    fn kdf_from_slice() {
-        let aes31 = Uuid::parse_str(AES_3_1_UUID).unwrap();
-        let aes4 = Uuid::parse_str(AES_4_UUID).unwrap();
-        let argon2 = Uuid::parse_str(ARGON2_UUID).unwrap();
-        let invalid = Uuid::parse_str(AES128_UUID).unwrap();
-
-        assert_eq!(KdfAlgorithm::from(aes31), KdfAlgorithm::Aes256_Kdbx3_1);
-        assert_eq!(KdfAlgorithm::from(aes4), KdfAlgorithm::Aes256_Kdbx4);
-        assert_eq!(KdfAlgorithm::from(argon2), KdfAlgorithm::Argon2);
-        assert_eq!(
-            KdfAlgorithm::from(invalid.clone()),
-            KdfAlgorithm::Unknown(invalid.clone())
-        );
-    }
+    UnimplementedKdfOptions(binary::KdfParams),
 }

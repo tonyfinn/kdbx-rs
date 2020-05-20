@@ -14,35 +14,53 @@ const TAG_STRING: u8 = 0x18;
 const TAG_ARRAY: u8 = 0x42;
 
 #[derive(Error, Debug)]
+/// Failures to parse a variant dictionary
 pub enum VariantParseError {
+    /// Failed reading data from source
     #[error("Could not read from file")]
     Io(#[from] std::io::Error),
+    /// String field contained invalid UTF-8
     #[error("Could not decode string")]
     DecodeString(#[from] std::string::FromUtf8Error),
+    /// Some field was not the expected size for its type
     #[error("Invalid size for type {ty:?}. Expected {expected:X} bytes but was {actual:X} bytes")]
     InvalidSize {
+        /// Type id for the field
         ty: u8,
+        /// Expected size for this type
         expected: usize,
+        /// Actual size of this type
         actual: usize,
     },
+    /// Variant field version unsupported by this library, version too high?
     #[error("Variant field version: {0} too high")]
     VariantFieldVersion(u8),
 }
 
 #[derive(PartialEq, Eq, Debug, Clone, TryInto)]
+/// A value from a kdbx header map with a type known at runtime
 pub enum Value {
+    /// 32 bit unsigned int
     Uint32(u32),
+    /// 64 bit unsigned int
     Uint64(u64),
+    /// True/False option
     Boolean(bool),
+    /// 32 bit signed int
     Int32(i32),
+    /// 64 bit signed int
     Int64(i64),
+    /// String data
     String(String),
+    /// Binary data
     Array(Vec<u8>),
+    /// Unknown field type
     Unknown(u8, Vec<u8>),
 }
 
 impl Value {
-    pub fn tag(&self) -> u8 {
+    #[allow(dead_code)]
+    pub(crate) fn tag(&self) -> u8 {
         match self {
             Value::Uint32(_) => TAG_UINT32,
             Value::Uint64(_) => TAG_UINT64,
@@ -55,7 +73,8 @@ impl Value {
         }
     }
 
-    pub fn data(&self) -> Vec<u8> {
+    #[allow(dead_code)]
+    pub(crate) fn data(&self) -> Vec<u8> {
         match self {
             Value::Uint32(val) => val.to_le_bytes().iter().cloned().collect(),
             Value::Uint64(val) => val.to_le_bytes().iter().cloned().collect(),
@@ -127,6 +146,7 @@ impl Value {
 
 type Result<T> = std::result::Result<T, VariantParseError>;
 
+/// Map of values from KDBX header with differing types
 pub type VariantDict = std::collections::HashMap<String, Value>;
 
 fn parse_variant_dict_entry<T: Read>(ty: u8, input: &mut T) -> Result<(String, Value)> {
