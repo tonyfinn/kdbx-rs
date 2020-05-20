@@ -1,4 +1,4 @@
-use super::{errors, header, KdbxDatabase, Locked};
+use super::{errors, header, Kdbx, Locked};
 use crate::utils;
 use sha2::{Digest, Sha256};
 use std::fs::File;
@@ -13,7 +13,7 @@ pub const KDBX_MAGIC_NUMBER: u32 = 0xB54BFB67;
 /// The database starts locked, use [`KdbxDatabase.unlock`] to unlock
 ///
 /// [`KdbxDatabase.unlock`]: ./struct.KdbxDatabase.html#method.unlock
-pub fn from_reader<R: Read>(mut input: R) -> Result<KdbxDatabase<Locked>, errors::OpenError> {
+pub fn from_reader<R: Read>(mut input: R) -> Result<Kdbx<Locked>, errors::OpenError> {
     let mut caching_reader = utils::CachingReader::new(&mut input);
     let mut buffer = [0u8; 4];
     caching_reader.read_exact(&mut buffer)?;
@@ -53,7 +53,7 @@ pub fn from_reader<R: Read>(mut input: R) -> Result<KdbxDatabase<Locked>, errors
         encrypted_data,
     };
 
-    Ok(KdbxDatabase { state: state })
+    Ok(Kdbx { state: state })
 }
 
 /// Read a database from a given path
@@ -61,7 +61,7 @@ pub fn from_reader<R: Read>(mut input: R) -> Result<KdbxDatabase<Locked>, errors
 /// The database starts locked, use [`KdbxDatabase.unlock`] to unlock
 ///
 /// [`KdbxDatabase.unlock`]: ./struct.KdbxDatabase.html#method.unlock
-pub fn open<P: AsRef<Path>>(path: P) -> Result<KdbxDatabase<Locked>, errors::OpenError> {
+pub fn open<P: AsRef<Path>>(path: P) -> Result<Kdbx<Locked>, errors::OpenError> {
     let path = path.as_ref();
     let mut file = File::open(path)?;
     from_reader(&mut file)

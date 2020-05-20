@@ -1,7 +1,8 @@
 //! Error types for kdbx-rs
 
 pub use crate::binary::errors::{HeaderError, OpenError, UnlockError};
-pub use crate::xml::parse::Error as XmlError;
+pub use crate::xml::parse::Error as XmlReadError;
+pub use crate::xml::serialize::Error as XmlWriteError;
 use thiserror::Error;
 
 #[derive(Error, Debug)]
@@ -15,5 +16,8 @@ pub enum Error {
     Unlock(#[from] UnlockError),
     /// Failed parsing database XML
     #[error("Failed to parse database XML: {0}")]
-    Xml(#[from] XmlError),
+    XmlRead(#[from] XmlReadError),
+    /// Failed writing database XML
+    #[error("Failed to write database XML: {0}")]
+    XmlWrite(#[from] XmlWriteError),
 }

@@ -1,3 +1,5 @@
+//! Keepass data types
+
 use chrono::NaiveDateTime;
 use uuid::Uuid;
 
@@ -27,7 +29,17 @@ pub struct Field {
     pub value: Value,
 }
 
-#[derive(Debug, Default, Clone, PartialEq, Eq)]
+impl Field {
+    /// Create a new field without memory protection
+    pub fn new(key: &str, value: &str) -> Field {
+        Field {
+            key: key.to_string(),
+            value: Value::Standard(value.to_string()),
+        }
+    }
+}
+
+#[derive(Debug, Clone, PartialEq, Eq)]
 /// A single password entry
 pub struct Entry {
     /// Identifier for this entry
@@ -40,8 +52,26 @@ pub struct Entry {
     pub times: Times,
 }
 
-#[derive(Debug, Default, Clone, PartialEq, Eq)]
-/// A group or folder of password entries
+impl Entry {
+    /// Add a new field to the entry
+    pub fn add_field(&mut self, field: Field) {
+        self.fields.push(field);
+    }
+}
+
+impl Default for Entry {
+    fn default() -> Entry {
+        Entry {
+            uuid: Uuid::new_v4(),
+            fields: Vec::new(),
+            history: Vec::new(),
+            times: Times::default(),
+        }
+    }
+}
+
+#[derive(Debug, Clone, PartialEq, Eq)]
+/// A group or folder of password entries and child groups
 pub struct Group {
     /// Identifier for this group
     pub uuid: Uuid,
@@ -53,6 +83,25 @@ pub struct Group {
     pub children: Vec<Group>,
     /// Access times for this group
     pub times: Times,
+}
+
+impl Group {
+    /// Add a new entry to this group
+    pub fn add_entry(&mut self, entry: Entry) {
+        self.entries.push(entry);
+    }
+}
+
+impl Default for Group {
+    fn default() -> Group {
+        Group {
+            uuid: Uuid::new_v4(),
+            name: String::new(),
+            entries: Vec::new(),
+            children: Vec::new(),
+            times: Times::default(),
+        }
+    }
 }
 
 #[derive(Debug, Default, Clone, PartialEq, Eq)]
@@ -121,7 +170,7 @@ impl Default for Times {
 
 #[derive(Debug, Default, Clone, PartialEq, Eq)]
 /// Decrypted database structure
-pub struct XmlDatabase {
+pub struct Database {
     /// Meta information about this database
     pub meta: Meta,
     /// Trees of items in this database

@@ -2,23 +2,23 @@ use super::{errors, header};
 use crate::{crypto, stream};
 use std::io::Read;
 
-pub trait DatabaseState: std::fmt::Debug {
+pub trait KdbxState: std::fmt::Debug {
     fn header(&self) -> &header::KdbxHeader;
 }
 
 #[derive(Debug)]
-/// A kdbx database
+/// A kdbx file
 ///
 /// Most methods are available on a specific state
-/// like KdbxDatabase<Locked> or KdbxDatase<Unlocked>
-pub struct KdbxDatabase<S>
+/// like Kdbx<Locked> or Kdbx<Unlocked>
+pub struct Kdbx<S>
 where
-    S: DatabaseState,
+    S: KdbxState,
 {
     pub(super) state: S,
 }
 
-impl<T: DatabaseState> KdbxDatabase<T> {
+impl<T: KdbxState> Kdbx<T> {
     /// Unencrypted database configuration and custom data
     pub fn header(&self) -> &header::KdbxHeader {
         &self.state.header()
@@ -26,7 +26,7 @@ impl<T: DatabaseState> KdbxDatabase<T> {
 }
 
 #[derive(Debug)]
-/// An unlocked database, allowing access to stored credentials
+/// An unlocked kdbx file, allowing access to stored credentials
 pub struct Unlocked {
     /// Header data of the kdbx archive, includes unencrypted metadata
     pub(crate) header: header::KdbxHeader,
@@ -40,13 +40,13 @@ pub struct Unlocked {
     pub(crate) xml_data: Vec<u8>,
 }
 
-impl DatabaseState for Unlocked {
+impl KdbxState for Unlocked {
     fn header(&self) -> &header::KdbxHeader {
         &self.header
     }
 }
 
-impl KdbxDatabase<Unlocked> {
+impl Kdbx<Unlocked> {
     /// Encrypted binaries and database options
     pub fn inner_header(&self) -> Option<&header::KdbxInnerHeader> {
         self.state.inner_header.as_ref()
@@ -59,7 +59,7 @@ impl KdbxDatabase<Unlocked> {
 }
 
 #[derive(Debug, PartialEq, Eq)]
-/// A locked database, use unlock(composite_key) to unlock
+/// A locked kdbx file, use unlock(composite_key) to unlock
 pub struct Locked {
     /// Header data of the kdbx archive, includes unencrypted metadata
     pub(crate) header: header::KdbxHeader,
@@ -75,13 +75,13 @@ pub struct Locked {
     pub(crate) encrypted_data: Vec<u8>,
 }
 
-impl DatabaseState for Locked {
+impl KdbxState for Locked {
     fn header(&self) -> &header::KdbxHeader {
         &self.header
     }
 }
 
-impl KdbxDatabase<Locked> {
+impl Kdbx<Locked> {
     fn decrypt_data(
         &self,
         master_key: &crypto::MasterKey,
@@ -102,13 +102,13 @@ impl KdbxDatabase<Locked> {
         Ok((inner_header, output_buffer))
     }
 
-    /// Unlocks the database
+    /// Unlocks the kdbx file
     ///
-    /// If unlock fails, returns the locked database along with the error
+    /// If unlock fails, returns the locked kdbx file along with the error
     pub fn unlock(
         self,
         key: &crypto::CompositeKey,
-    ) -> Result<KdbxDatabase<Unlocked>, (errors::UnlockError, KdbxDatabase<Locked>)> {
+    ) -> Result<Kdbx<Unlocked>, (errors::UnlockError, Kdbx<Locked>)> {
         let master_key = match key.master_key(&self.state.header.kdf_params) {
             Ok(master_key) => master_key,
             Err(e) => return Err((errors::UnlockError::from(e), self)),
@@ -119,7 +119,7 @@ impl KdbxDatabase<Locked> {
 
         if header_block_key.verify_header_block(&self.state.hmac, &self.state.header_data) {
             match self.decrypt_data(&master_key) {
-                Ok((inner_header, data)) => Ok(KdbxDatabase {
+                Ok((inner_header, data)) => Ok(Kdbx {
                     state: Unlocked {
                         header: self.state.header,
                         inner_header: Some(inner_header),

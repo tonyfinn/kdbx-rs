@@ -35,8 +35,8 @@ fn print_kdf(params: &kdbx_rs::binary::KdfParams) {
 
 fn main() -> Result<(), kdbx_rs::Error> {
     let args: Vec<String> = std::env::args().collect();
-    let db = kdbx_rs::open(&args[1])?;
-    let header = db.header();
+    let kdbx = kdbx_rs::open(&args[1])?;
+    let header = kdbx.header();
     println!("Cipher: {:?}", header.cipher);
     println!("Compression: {:?}", header.compression_type);
     print_kdf(&header.kdf_params);

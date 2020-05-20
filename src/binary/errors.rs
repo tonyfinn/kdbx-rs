@@ -3,7 +3,6 @@ use super::wrapper_fields;
 use crate::crypto;
 use thiserror::Error;
 
-
 #[derive(Error, Debug)]
 /// Errors encountered loading a database prior to decryption
 pub enum OpenError {

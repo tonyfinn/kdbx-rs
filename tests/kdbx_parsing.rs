@@ -1,4 +1,3 @@
-
 use kdbx_rs;
 use std::fs;
 use std::path::PathBuf;
@@ -15,15 +14,24 @@ fn kdbx4_parsing() -> Result<(), kdbx_rs::Error> {
     let db = kdbx_rs::from_reader(file).unwrap();
     let key = kdbx_rs::CompositeKey::from_password("kdbxrs");
     let db = db.unlock(&key).map_err(|e| e.0)?;
-    let xml = kdbx_rs::parse_xml(db.xml_data())?;
+    let xml = kdbx_rs::xml::parse_xml(db.xml_data())?;
 
     assert_eq!(1, xml.groups.len());
     assert_eq!("Root", xml.groups[0].name);
-    assert_eq!("cd4233f1-fac2-4272-b309-3c5e7df90097", xml.groups[0].uuid.to_string());
+    assert_eq!(
+        "cd4233f1-fac2-4272-b309-3c5e7df90097",
+        xml.groups[0].uuid.to_string()
+    );
     assert_eq!(1, xml.groups[0].entries.len());
-    assert_eq!("d5870a13-f968-41c5-a233-69b7bc86a628", xml.groups[0].entries[0].uuid.to_string());
+    assert_eq!(
+        "d5870a13-f968-41c5-a233-69b7bc86a628",
+        xml.groups[0].entries[0].uuid.to_string()
+    );
     assert_eq!(1, xml.groups[0].entries[0].history.len());
-    assert_eq!("d5870a13-f968-41c5-a233-69b7bc86a628", xml.groups[0].entries[0].history[0].uuid.to_string());
+    assert_eq!(
+        "d5870a13-f968-41c5-a233-69b7bc86a628",
+        xml.groups[0].entries[0].history[0].uuid.to_string()
+    );
 
     Ok(())
 }
