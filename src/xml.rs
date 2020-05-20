@@ -1,7 +1,7 @@
 //! Inner XML format and decrypted database data
 
 pub(crate) mod parse;
-mod type_parsers;
+mod decoders;
 mod types;
 
 pub use parse::parse_xml;

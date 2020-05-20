@@ -1,12 +1,12 @@
 use chrono::{Duration, NaiveDate, NaiveDateTime};
 use uuid::Uuid;
 
-fn parse_uuid(b64uuid: &str) -> Option<Uuid> {
+pub(crate) fn decode_uuid(b64uuid: &str) -> Option<Uuid> {
     let decoded = base64::decode(b64uuid).ok()?;
     Uuid::from_slice(&decoded).ok()
 }
 
-fn parse_datetime(b64date: &str) -> Option<NaiveDateTime> {
+pub(crate) fn decode_datetime(b64date: &str) -> Option<NaiveDateTime> {
     let decoded = base64::decode(b64date).ok()?;
     let mut bytes = [0u8; 8];
     for i in 0..usize::min(bytes.len(), decoded.len()) {

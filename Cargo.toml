@@ -30,3 +30,7 @@ path = "src/bin/kdbx_decrypt.rs"
 [[bin]]
 name = "kdbx-dump-header"
 path = "src/bin/kdbx_dump_header.rs"
+
+[[bin]]
+name = "kdbx-parse"
+path = "src/bin/kdbx_parse.rs"

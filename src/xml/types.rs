@@ -1,13 +1,30 @@
 use chrono::NaiveDateTime;
 use uuid::Uuid;
 
+/// A value for a entry's field
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub enum Value {
+    /// A value using in-memory encryption
+    Protected(String),
+    /// A value that's unencrypted in the database
+    Standard(String),
+    /// A empty value
+    Empty,
+}
+
+impl Default for Value {
+    fn default() -> Value {
+        Value::Empty
+    }
+}
+
 #[derive(Debug, Default, Clone, PartialEq, Eq)]
 /// A key value pair
 pub struct Field {
     /// The name of this field
     pub key: String,
     /// The (optionally encrypted) value of this field
-    pub value: String,
+    pub value: Value,
 }
 
 #[derive(Debug, Default, Clone, PartialEq, Eq)]
@@ -41,11 +58,16 @@ pub struct Group {
 #[derive(Debug, Default, Clone, PartialEq, Eq)]
 /// Identifies which fields are encrypted in memory for official clients
 pub struct MemoryProtection {
-    protect_title: bool,
-    protect_user_name: bool,
-    protect_password: bool,
-    protect_url: bool,
-    protet_notes: bool,
+    /// Whether title fields should be encrypted
+    pub protect_title: bool,
+    /// Whether username fields should be encrypted
+    pub protect_user_name: bool,
+    /// Whether password fields should be encrypted
+    pub protect_password: bool,
+    /// Whether URL fields should be encrypted
+    pub protect_url: bool,
+    /// Whether Notes fields should be encrypted
+    pub protect_notes: bool,
 }
 
 #[derive(Debug, Default, Clone, PartialEq, Eq)]

@@ -3,16 +3,6 @@ use super::wrapper_fields;
 use crate::crypto;
 use thiserror::Error;
 
-#[derive(Error, Debug)]
-/// Wrapper error type for this library
-pub enum Error {
-    /// Failed to open a database
-    #[error("Could not open database: {0}")]
-    Open(#[from] OpenError),
-    /// Failed unlocking a database
-    #[error("Could not unlock database: {0}")]
-    Unlock(#[from] UnlockError),
-}
 
 #[derive(Error, Debug)]
 /// Errors encountered loading a database prior to decryption
