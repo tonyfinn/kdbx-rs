@@ -177,11 +177,24 @@ pub enum KdfParams {
 impl TryFrom<VariantDict> for KdfParams {
     type Error = HeaderError;
     fn try_from(mut vdict: VariantDict) -> Result<Self, HeaderError> {
-        let uuid = vdict
-            .remove("$UUID")
-            .and_then(|uuid_val| uuid_val.try_into().ok())
-            .and_then(|array: Vec<u8>| Uuid::from_slice(&array).ok())
-            .ok_or_else(|| HeaderError::MalformedField(OuterHeaderId::KdfParameters))?;
+        let uuid_val = vdict.remove("$UUID").ok_or_else(|| {
+            HeaderError::MalformedField(
+                OuterHeaderId::KdfParameters,
+                "No UUID for kdf parameters".into(),
+            )
+        })?;
+        let uuid_array: Vec<u8> = uuid_val.try_into().map_err(|_| {
+            HeaderError::MalformedField(
+                OuterHeaderId::KdfParameters,
+                "KDF UUID not a byte array".into(),
+            )
+        })?;
+        let uuid = Uuid::from_slice(&uuid_array).map_err(|_| {
+            HeaderError::MalformedField(
+                OuterHeaderId::KdfParameters,
+                "KDF UUID not a valid UUID".into(),
+            )
+        })?;
 
         let kdf_algorithm = KdfAlgorithm::from(uuid.clone());
 
@@ -229,7 +242,7 @@ impl Into<VariantDict> for KdfParams {
                 vdict.insert(
                     "$UUID".into(),
                     variant_dict::Value::Array(
-                        uuid::Uuid::from(KdfAlgorithm::Aes256_Kdbx4)
+                        uuid::Uuid::from(KdfAlgorithm::Argon2)
                             .as_bytes()
                             .iter()
                             .cloned()
@@ -237,10 +250,10 @@ impl Into<VariantDict> for KdfParams {
                     ),
                 );
                 vdict.insert("M".into(), variant_dict::Value::Uint64(memory_bytes));
-                vdict.insert("I".into(), variant_dict::Value::Uint64(iterations));
                 vdict.insert("V".into(), variant_dict::Value::Uint32(version));
-                vdict.insert("P".into(), variant_dict::Value::Uint32(lanes));
                 vdict.insert("S".into(), variant_dict::Value::Array(salt));
+                vdict.insert("I".into(), variant_dict::Value::Uint64(iterations));
+                vdict.insert("P".into(), variant_dict::Value::Uint32(lanes));
             }
             KdfParams::Aes { rounds, salt } => {
                 vdict.insert(
@@ -328,7 +341,7 @@ impl From<CompressionType> for HeaderField<OuterHeaderId> {
     fn from(compression_type: CompressionType) -> HeaderField<OuterHeaderId> {
         let compression_type_id: u32 = compression_type.into();
         HeaderField::new(
-            OuterHeaderId::KdfParameters,
+            OuterHeaderId::CompressionFlags,
             Vec::from(compression_type_id.to_le_bytes().as_ref()),
         )
     }

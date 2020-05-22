@@ -10,7 +10,7 @@ Library for reading and writing KDBX libraries from Rust
 | License          | GPLv3+    | MIT     | MIT/Apache  | MIT          | ISC            |
 | KDF Support      | Argon2/AES| Argon2/AES | AES      | Argon2/AES   | AES            |
 | Cipher support   | AES | AES/Chacha20  | AES/Salsa20 | AES/Chacha20 | AES            |
-| .kdbx 4 support  | Read only |Read only| No          | Read only    | No             |
+| .kdbx 4 support  | Yes       |Read only| No          | Read only    | No             |
 | .kdbx 3 support  | No        | No      | Yes         | Read only    | No             |
 | .kdb support     | No        | No      | No          | No           | Yes            |
 | Memory protection| No        | No      | No          | Yes          | Yes            |

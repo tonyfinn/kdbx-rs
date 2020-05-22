@@ -1,6 +1,6 @@
 //! Keepass data types
 
-use chrono::NaiveDateTime;
+use chrono::{NaiveDateTime,Timelike};
 use uuid::Uuid;
 
 /// A value for a entry's field
@@ -56,6 +56,37 @@ impl Entry {
     /// Add a new field to the entry
     pub fn add_field(&mut self, field: Field) {
         self.fields.push(field);
+    }
+
+    /// Find a field in this entry with a given key
+    pub fn find_entry(&self, key: &str) -> Option<&str> {
+        self.fields.iter()
+            .find(|i| i.key.as_str() == key)
+            .and_then(|f| match &f.value {
+                Value::Empty => None,
+                Value::Standard(s) => Some(s.as_ref()),
+                Value::Protected(p) => Some(p.as_ref()),
+            })
+    }
+
+    /// Return the title of this item
+    pub fn title(&self) -> Option<&str> {
+        self.find_entry("Title")
+    }
+
+    /// Return the username of this item
+    pub fn username(&self) -> Option<&str> {
+        self.find_entry("UserName")
+    }
+
+    /// Return the URL of this item
+    pub fn url(&self) -> Option<&str> {
+        self.find_entry("URL")
+    }
+
+    /// Return the password of this item
+    pub fn password(&self) -> Option<&str> {
+        self.find_entry("Password")
     }
 }
 
@@ -155,7 +186,7 @@ pub struct Times {
 
 impl Default for Times {
     fn default() -> Times {
-        let now = chrono::Local::now().naive_local();
+        let now = chrono::Local::now().naive_local().with_nanosecond(0).unwrap();
         Times {
             expires: false,
             usage_count: 0,
@@ -175,4 +206,26 @@ pub struct Database {
     pub meta: Meta,
     /// Trees of items in this database
     pub groups: Vec<Group>,
+}
+
+impl Database {
+    /// Return meta information about the database like name and access times
+    pub fn meta(&self) -> &Meta {
+        &self.meta
+    }
+
+    /// Mutable meta information about the database like name and access times
+    pub fn meta_mut(&mut self) -> &mut Meta {
+        &mut self.meta
+    }
+
+    /// Top level group for database entries
+    pub fn root(&self) -> Option<&Group> {
+        self.groups.get(0)
+    }
+
+    /// Mutable top level group for database entries
+    pub fn root_mut(&mut self) -> Option<&mut Group> {
+        self.groups.get_mut(0)
+    }
 }

@@ -1,4 +1,3 @@
-use kdbx_rs::binary::Unlocked;
 use kdbx_rs::types::{Entry, Field, Group, Times};
 use kdbx_rs::{CompositeKey, Database, Error, Kdbx};
 
@@ -30,7 +29,7 @@ fn main() -> Result<(), Error> {
     db.meta.database_name = "BarName".to_string();
     db.meta.database_description = "BazDesc".to_string();
     let mut group = Group::default();
-    group.name = "FooGroup".to_string();
+    group.name = "Root".to_string();
     group.uuid = Uuid::from_u128(0x12345678);
     group.times = sample_times();
     let mut entry = Entry::default();
@@ -44,7 +43,7 @@ fn main() -> Result<(), Error> {
     let output_path = PathBuf::from("kdbx_rs.kdbx");
     let mut file = File::create(output_path).expect("Could not open output file");
 
-    let mut kdbx = Kdbx::<Unlocked>::from_database(db)?;
+    let mut kdbx = Kdbx::from_database(db)?;
     kdbx.set_key(CompositeKey::from_password("kdbxrs"))?;
     kdbx.write(&mut file).expect("Could not write to file");
     Ok(())

@@ -11,12 +11,15 @@ use thiserror::Error;
 #[derive(Error, Debug)]
 /// Wrapper error type for this library
 pub enum Error {
-    /// Failed to open a database
+    /// Failed to open a KDBX file
     #[error("Could not open database: {0}")]
     Open(#[from] OpenError),
-    /// Failed unlocking a database
+    /// Failed unlocking a KDBX file
     #[error("Could not unlock database: {0}")]
     Unlock(#[from] UnlockError),
+    /// Failed to write a KDBX file
+    #[error("Could not write database: {0}")]
+    Write(#[from] WriteError),
     /// Failed parsing database XML
     #[error("Failed to parse database XML: {0}")]
     XmlRead(#[from] XmlReadError),

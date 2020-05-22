@@ -1,6 +1,7 @@
 use super::{errors, header};
-use crate::{crypto, stream};
+use crate::{crypto, stream, types};
 use std::io::{Read, Write};
+use std::ops::{Deref, DerefMut};
 
 pub trait KdbxState: std::fmt::Debug {
     fn header(&self) -> &header::KdbxHeader;
@@ -29,31 +30,6 @@ impl<T: KdbxState> Kdbx<T> {
     pub fn write<W: Write>(&self, output: W) -> Result<(), errors::WriteError> {
         self.state.write(output)?;
         Ok(())
-    }
-
-    /// Generate a new .kdbx from the given database
-    ///
-    /// Uses OS randomness provided by [`getrandom`] to generate all required seed
-    /// and IVs.
-    ///
-    /// Note that you need to set a key with [`Kdbx::set_key`]
-    /// to be able to write the database
-    pub fn from_database(
-        database: crate::Database,
-    ) -> Result<Kdbx<Unlocked>, errors::DatabaseCreationError> {
-        let header = header::KdbxHeader::from_os_random()?;
-        let inner_header = header::KdbxInnerHeader::from_os_random()?;
-        let unlocked = Unlocked {
-            header,
-            inner_header,
-            major_version: 4,
-            minor_version: 0,
-            xml_data: None,
-            composed_key: None,
-            master_key: None,
-            database,
-        };
-        Ok(Kdbx { state: unlocked })
     }
 }
 
@@ -93,7 +69,9 @@ impl Unlocked {
 
         crate::xml::write_xml(&mut encrypted_stream, &self.database)?;
 
-        drop(encrypted_stream);
+        let hmacw = encrypted_stream.finish()?;
+        let inner = hmacw.finish()?;
+        inner.flush()?;
         Ok(encrypted_buf)
     }
 }
@@ -151,6 +129,45 @@ impl Kdbx<Unlocked> {
     /// Only present from databases loaded from existing sources
     pub fn raw_xml(&self) -> Option<&[u8]> {
         self.state.xml_data.as_deref()
+    }
+
+    /// Generate a new .kdbx from the given database
+    ///
+    /// Uses OS randomness provided by [`getrandom`] to generate all required seed
+    /// and IVs.
+    ///
+    /// Note that you need to set a key with [`Kdbx::set_key`]
+    /// to be able to write the database
+    pub fn from_database(
+        database: crate::Database,
+    ) -> Result<Kdbx<Unlocked>, errors::DatabaseCreationError> {
+        let header = header::KdbxHeader::from_os_random()?;
+        let inner_header = header::KdbxInnerHeader::from_os_random()?;
+        let unlocked = Unlocked {
+            header,
+            inner_header,
+            major_version: 4,
+            minor_version: 0,
+            xml_data: None,
+            composed_key: None,
+            master_key: None,
+            database,
+        };
+        Ok(Kdbx { state: unlocked })
+    }
+}
+
+impl Deref for Kdbx<Unlocked> {
+    type Target = types::Database;
+
+    fn deref(&self) -> &types::Database {
+        &self.state.database
+    }
+}
+
+impl DerefMut for Kdbx<Unlocked> {
+    fn deref_mut(&mut self) -> &mut types::Database {
+        &mut self.state.database
     }
 }
 

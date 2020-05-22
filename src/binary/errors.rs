@@ -50,8 +50,8 @@ pub enum HeaderError {
     #[error("Error reading database header - {0}")]
     Io(#[from] std::io::Error),
     /// A supported field had an unexpected format
-    #[error("Incompatible database - Malformed field of type {0:?}")]
-    MalformedField(header::OuterHeaderId),
+    #[error("Incompatible database - Malformed field of type {0:?}: {1}")]
+    MalformedField(header::OuterHeaderId, String),
     /// A required field is missing in the unencrypted header
     #[error("Incompatible database - Missing required field of type {0:?}")]
     MissingRequiredField(header::OuterHeaderId),

@@ -23,19 +23,55 @@
         {
             "type": "lldb",
             "request": "launch",
-            "name": "Debug executable 'kdbx-rs'",
+            "name": "Debug executable 'kdbx-dump-header'",
             "cargo": {
                 "args": [
                     "build",
-                    "--bin=kdbx-rs",
+                    "--bin=kdbx-dump-header",
                     "--package=kdbx-rs"
                 ],
                 "filter": {
-                    "name": "kdbx-rs",
+                    "name": "kdbx-dump-header",
                     "kind": "bin"
                 }
             },
             "args": ["res/kdbx4-argon2.kdbx"],
+            "cwd": "${workspaceFolder}"
+        },
+        {
+            "type": "lldb",
+            "request": "launch",
+            "name": "Debug executable 'kdbx-parse'",
+            "cargo": {
+                "args": [
+                    "build",
+                    "--bin=kdbx-parse",
+                    "--package=kdbx-rs"
+                ],
+                "filter": {
+                    "name": "kdbx-parse",
+                    "kind": "bin"
+                }
+            },
+            "args": ["kdbx_rs.kdbx"],
+            "cwd": "${workspaceFolder}"
+        },
+        {
+            "type": "lldb",
+            "request": "launch",
+            "name": "Debug executable 'kdbx-generate'",
+            "cargo": {
+                "args": [
+                    "build",
+                    "--bin=kdbx-generate",
+                    "--package=kdbx-rs"
+                ],
+                "filter": {
+                    "name": "kdbx-generate",
+                    "kind": "bin"
+                }
+            },
+            "args": [],
             "cwd": "${workspaceFolder}"
         },
         {

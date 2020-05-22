@@ -214,20 +214,30 @@ impl KdbxHeaderBuilder {
             OuterHeaderId::CipherId => {
                 let cipher = Uuid::from_slice(&header.data)
                     .map(From::from)
-                    .map_err(|_e| Error::MalformedField(header.ty))?;
+                    .map_err(|_e| {
+                        Error::MalformedField(header.ty, "Cipher UUID not valid".into())
+                    })?;
 
                 self.cipher = Some(cipher);
             }
             OuterHeaderId::KdfParameters => {
-                self.kdf_params = Some(
-                    variant_dict::parse_variant_dict(&*header.data)
-                        .map_err(|_| Error::MalformedField(OuterHeaderId::KdfParameters))?
-                        .try_into()?,
-                );
+                self.kdf_params = match variant_dict::parse_variant_dict(&*header.data) {
+                    Ok(vdict) => Some(vdict.try_into()?),
+                    Err(e) => {
+                        println!("Malformed field: {}", e);
+                        return Err(Error::MalformedField(
+                            OuterHeaderId::KdfParameters,
+                            "Corrupt variant dictionary".into(),
+                        ));
+                    }
+                };
             }
             OuterHeaderId::CompressionFlags => {
                 if header.data.len() != 4 {
-                    return Err(Error::MalformedField(OuterHeaderId::CompressionFlags));
+                    return Err(Error::MalformedField(
+                        OuterHeaderId::CompressionFlags,
+                        "Wrong size for compression ID".into(),
+                    ));
                 }
                 self.compression_type =
                     Some(wrapper_fields::CompressionType::from(u32::from_le_bytes([
@@ -302,7 +312,7 @@ impl KdbxHeader {
     /// [`getrandom`]: https://docs.rs/getrandom/0.1/getrandom/index.html
     pub fn from_os_random() -> std::result::Result<KdbxHeader, getrandom::Error> {
         let mut master_seed = vec![0u8; 32];
-        let mut encryption_iv = vec![0u8; 32];
+        let mut encryption_iv = vec![0u8; 16];
         let mut cipher_salt = vec![0u8; 32];
         getrandom(&mut master_seed)?;
         getrandom(&mut encryption_iv)?;
@@ -317,7 +327,7 @@ impl KdbxHeader {
                 lanes: 2,
             },
             other_headers: Vec::new(),
-            compression_type: super::CompressionType::Gzip,
+            compression_type: super::CompressionType::None,
             master_seed,
             encryption_iv,
         })
@@ -351,7 +361,6 @@ impl KdbxHeader {
             .iter()
             .cloned()
             .chain(once(self.cipher.into()))
-            .chain(once(self.kdf_params.clone().into()))
             .chain(once(self.compression_type.clone().into()))
             .chain(once(HeaderField::new(
                 OuterHeaderId::MasterSeed,
@@ -361,6 +370,7 @@ impl KdbxHeader {
                 OuterHeaderId::EncryptionIv,
                 self.encryption_iv.clone(),
             )))
+            .chain(once(self.kdf_params.clone().into()))
             .chain(once(HeaderField::new(
                 OuterHeaderId::EndOfHeader,
                 Vec::new(),
@@ -470,7 +480,7 @@ impl KdbxInnerHeader {
 
         for header in headers {
             writer.write_all(&[header.ty.into()])?;
-            writer.write_all(&(header.data.len() as u32).to_le_bytes())?;
+            writer.write_all(&(header.data.len() as i32).to_le_bytes())?;
             writer.write_all(&header.data)?;
         }
         Ok(())
