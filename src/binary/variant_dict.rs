@@ -2,7 +2,7 @@ use crate::utils::buffer;
 use derive_more::TryInto;
 use std::collections::HashMap;
 use std::convert::TryInto;
-use std::io::Read;
+use std::io::{self, Read};
 use thiserror::Error;
 
 const TAG_UINT32: u8 = 0x04;
@@ -59,7 +59,6 @@ pub enum Value {
 }
 
 impl Value {
-    #[allow(dead_code)]
     pub(crate) fn tag(&self) -> u8 {
         match self {
             Value::Uint32(_) => TAG_UINT32,
@@ -73,7 +72,6 @@ impl Value {
         }
     }
 
-    #[allow(dead_code)]
     pub(crate) fn data(&self) -> Vec<u8> {
         match self {
             Value::Uint32(val) => val.to_le_bytes().iter().cloned().collect(),
@@ -196,6 +194,23 @@ pub(crate) fn parse_variant_dict<T: Read>(mut input: T) -> Result<VariantDict> {
     }
 
     Ok(map)
+}
+
+pub(crate) fn write_variant_dict<W: io::Write>(
+    mut output: W,
+    vdict: &VariantDict,
+) -> io::Result<()> {
+    output.write_all(&[0u8, 1u8])?;
+    for (name, value) in vdict.iter() {
+        output.write_all(&[value.tag()])?;
+        output.write_all(&(name.len() as i32).to_le_bytes())?;
+        output.write_all(name.as_bytes())?;
+        let data = value.data();
+        output.write_all(&(data.len() as i32).to_le_bytes())?;
+        output.write_all(&data)?;
+    }
+    output.write_all(&[0])?;
+    Ok(())
 }
 
 #[cfg(test)]

@@ -35,3 +35,7 @@ path = "src/bin/kdbx_dump_header.rs"
 [[bin]]
 name = "kdbx-parse"
 path = "src/bin/kdbx_parse.rs"
+
+[[bin]]
+name = "kdbx-generate"
+path = "src/bin/kdbx_generate.rs"

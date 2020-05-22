@@ -1,11 +1,12 @@
-use super::errors::HeaderError as Error;
+use super::errors::{self, HeaderError as Error};
 use super::variant_dict;
 use super::wrapper_fields;
 use crate::crypto;
 use crate::utils;
+use getrandom::getrandom;
 use sha2::{Digest, Sha256};
 use std::convert::TryInto;
-use std::io::Read;
+use std::io::{Read, Write};
 use std::marker::PhantomData;
 use uuid::Uuid;
 
@@ -141,12 +142,17 @@ impl HeaderId for InnerHeaderId {
     }
 }
 
-#[derive(Debug, PartialEq, Eq)]
+#[derive(Clone, Debug, PartialEq, Eq)]
 pub struct HeaderField<T> {
     ty: T,
     data: Vec<u8>,
 }
 
+impl<T> HeaderField<T> {
+    pub(crate) fn new(ty: T, data: Vec<u8>) -> HeaderField<T> {
+        HeaderField { ty, data }
+    }
+}
 pub struct HeaderParser<'a, R: Read + 'a, T: HeaderId> {
     _id: PhantomData<T>,
     reader: &'a mut R,
@@ -263,6 +269,10 @@ impl KdbxHeaderBuilder {
 
 #[derive(Debug, PartialEq, Eq)]
 /// Unencrypted database configuration and custom data
+///
+/// [`KdbxHeader::from_os_random()`] will provide a header with
+/// the default encryption settings and new random keys
+/// from the OS secure RNG
 pub struct KdbxHeader {
     /// Encryption cipher used for decryption the database
     pub cipher: wrapper_fields::Cipher,
@@ -279,6 +289,40 @@ pub struct KdbxHeader {
 }
 
 impl KdbxHeader {
+    /// Create a new header to encrypt a database with keys from the OS Secure RNG.
+    ///
+    /// Under the hood this uses the [`getrandom`] crate to access the OS RNG,
+    /// the actual mechanism used to get random numbers is detailed in that
+    /// crate's documentation.
+    ///
+    /// The default encryption is currently to use AES256 as a stream cipher,
+    /// and Argon2d v19 with 64 MiB memory factor, and 10 iterations as the KDF.
+    /// This is subject to change in future crate versions
+    ///
+    /// [`getrandom`]: https://docs.rs/getrandom/0.1/getrandom/index.html
+    pub fn from_os_random() -> std::result::Result<KdbxHeader, getrandom::Error> {
+        let mut master_seed = vec![0u8; 32];
+        let mut encryption_iv = vec![0u8; 32];
+        let mut cipher_salt = vec![0u8; 32];
+        getrandom(&mut master_seed)?;
+        getrandom(&mut encryption_iv)?;
+        getrandom(&mut cipher_salt)?;
+        Ok(KdbxHeader {
+            cipher: wrapper_fields::Cipher::Aes256,
+            kdf_params: wrapper_fields::KdfParams::Argon2 {
+                iterations: 10,
+                memory_bytes: 0xFFFF * 1024,
+                salt: cipher_salt,
+                version: 19,
+                lanes: 2,
+            },
+            other_headers: Vec::new(),
+            compression_type: super::CompressionType::Gzip,
+            master_seed,
+            encryption_iv,
+        })
+    }
+
     pub(crate) fn read<R: Read>(
         mut caching_reader: utils::CachingReader<R>,
     ) -> Result<(KdbxHeader, Vec<u8>)> {
@@ -299,11 +343,41 @@ impl KdbxHeader {
             Err(Error::ChecksumFailed)
         }
     }
+
+    pub(crate) fn write<W: Write>(&self, mut writer: W) -> std::io::Result<()> {
+        use std::iter::once;
+        let headers = self
+            .other_headers
+            .iter()
+            .cloned()
+            .chain(once(self.cipher.into()))
+            .chain(once(self.kdf_params.clone().into()))
+            .chain(once(self.compression_type.clone().into()))
+            .chain(once(HeaderField::new(
+                OuterHeaderId::MasterSeed,
+                self.master_seed.clone(),
+            )))
+            .chain(once(HeaderField::new(
+                OuterHeaderId::EncryptionIv,
+                self.encryption_iv.clone(),
+            )))
+            .chain(once(HeaderField::new(
+                OuterHeaderId::EndOfHeader,
+                Vec::new(),
+            )));
+
+        for header in headers {
+            writer.write_all(&[header.ty.into()])?;
+            writer.write_all(&(header.data.len() as u32).to_le_bytes())?;
+            writer.write_all(&header.data)?;
+        }
+        Ok(())
+    }
 }
 
 #[derive(Default)]
 pub struct KdbxInnerHeaderBuilder {
-    pub inner_stream_cipher_id: Option<u32>,
+    pub inner_stream_cipher: Option<wrapper_fields::InnerStreamCipher>,
     pub inner_stream_key: Option<Vec<u8>>,
     /// Custom and unrecognized header types
     pub other_headers: Vec<HeaderField<InnerHeaderId>>,
@@ -314,7 +388,8 @@ impl KdbxInnerHeaderBuilder {
         match header.ty {
             InnerHeaderId::InnerRandomStreamCipherId => {
                 let d = header.data;
-                self.inner_stream_cipher_id = Some(u32::from_le_bytes([d[0], d[1], d[2], d[3]]));
+                self.inner_stream_cipher =
+                    Some(u32::from_le_bytes([d[0], d[1], d[2], d[3]]).into());
             }
             InnerHeaderId::InnerRandomStreamKey => self.inner_stream_key = Some(header.data),
             _ => self.other_headers.push(header),
@@ -325,7 +400,7 @@ impl KdbxInnerHeaderBuilder {
 
     fn build(self) -> Result<KdbxInnerHeader> {
         Ok(KdbxInnerHeader {
-            inner_stream_cipher_id: self.inner_stream_cipher_id.ok_or_else(|| {
+            inner_stream_cipher: self.inner_stream_cipher.ok_or_else(|| {
                 Error::MissingRequiredInnerField(InnerHeaderId::InnerRandomStreamCipherId)
             })?,
             inner_stream_key: self.inner_stream_key.ok_or_else(|| {
@@ -340,7 +415,7 @@ impl KdbxInnerHeaderBuilder {
 #[derive(Debug, PartialEq, Eq)]
 pub struct KdbxInnerHeader {
     /// Cipher identifier for data encrypted in memory
-    pub inner_stream_cipher_id: u32,
+    pub inner_stream_cipher: wrapper_fields::InnerStreamCipher,
     /// Cipher key for data encrypted in memory
     pub inner_stream_key: Vec<u8>,
     /// Headers not handled by this library
@@ -348,6 +423,25 @@ pub struct KdbxInnerHeader {
 }
 
 impl KdbxInnerHeader {
+    /// Returns an inner header setup for a default stream cipher and OS random keys
+    ///
+    /// Currently the default stream cipher is ChaCha20
+    ///
+    /// See the [`getrandom`] crate doc for details on random number sources
+    ///
+    /// [`getrandom`]: https://docs.rs/getrandom/0.1/getrandom/index.html
+    pub fn from_os_random() -> std::result::Result<KdbxInnerHeader, errors::DatabaseCreationError> {
+        let inner_stream_cipher = wrapper_fields::InnerStreamCipher::ChaCha20;
+        let mut inner_stream_key = vec![0u8; 44]; // 32 bit key + 12 bit nonce for chacha20
+        getrandom::getrandom(&mut inner_stream_key)?;
+
+        Ok(KdbxInnerHeader {
+            inner_stream_cipher,
+            inner_stream_key,
+            other_headers: Vec::new(),
+        })
+    }
+
     pub(crate) fn read<R: Read>(reader: &mut R) -> Result<KdbxInnerHeader> {
         let mut header_builder = KdbxInnerHeaderBuilder::default();
         let headers = HeaderParser::new(reader).read_all_headers()?;
@@ -356,5 +450,29 @@ impl KdbxInnerHeader {
         }
 
         header_builder.build()
+    }
+
+    pub(crate) fn write<W: Write>(&self, mut writer: W) -> std::io::Result<()> {
+        use std::iter::once;
+        let headers = self
+            .other_headers
+            .iter()
+            .cloned()
+            .chain(once(self.inner_stream_cipher.clone().into()))
+            .chain(once(HeaderField::new(
+                InnerHeaderId::InnerRandomStreamKey,
+                self.inner_stream_key.clone(),
+            )))
+            .chain(once(HeaderField::new(
+                InnerHeaderId::EndOfHeader,
+                Vec::new(),
+            )));
+
+        for header in headers {
+            writer.write_all(&[header.ty.into()])?;
+            writer.write_all(&(header.data.len() as u32).to_le_bytes())?;
+            writer.write_all(&header.data)?;
+        }
+        Ok(())
     }
 }

@@ -1,5 +1,6 @@
 use crate::binary;
 
+use hmac::crypto_mac::MacResult;
 use hmac::{Hmac, Mac};
 use sha2::{Digest, Sha256, Sha512};
 use std::string::ToString;
@@ -30,7 +31,7 @@ impl CompositeKey {
         CompositeKey::new(Some(pw.into()), None)
     }
 
-    fn composed(&self) -> Vec<u8> {
+    pub(crate) fn composed(&self) -> ComposedKey {
         let mut buffer = Vec::new();
         if let Some(ref pw) = self.pw {
             buffer.extend(Sha256::digest(pw.as_bytes()))
@@ -40,11 +41,17 @@ impl CompositeKey {
             buffer.extend(Sha256::digest(keyfile))
         }
 
-        Sha256::digest(&buffer).iter().cloned().collect()
+        ComposedKey(Sha256::digest(&buffer).iter().cloned().collect())
     }
+}
 
+#[derive(Debug)]
+/// Hashed combined input credentials used as KDF input
+pub struct ComposedKey(Vec<u8>);
+
+impl ComposedKey {
     /// Generate a master key used to derive all other keys
-    pub(crate) fn master_key(
+    pub fn master_key(
         &self,
         kdf_options: &binary::KdfParams,
     ) -> Result<MasterKey, KeyGenerationError> {
@@ -66,7 +73,7 @@ impl CompositeKey {
                     time_cost: *iterations as u32,
                     ..Default::default()
                 };
-                let hash = argon2::hash_raw(&self.composed(), salt, &config)
+                let hash = argon2::hash_raw(&self.0, salt, &config)
                     .map_err(|e| KeyGenerationError::KeyGeneration(e.to_string()))?;
 
                 Ok(MasterKey(hash))
@@ -77,7 +84,8 @@ impl CompositeKey {
 }
 
 /// Master key - this is generated from the user's composite key and is used to generate all other keys
-pub(crate) struct MasterKey(Vec<u8>);
+#[derive(Debug)]
+pub struct MasterKey(Vec<u8>);
 
 impl MasterKey {
     /// Obtain a key to use for data integrity checks
@@ -132,6 +140,28 @@ impl HmacBlockKey {
         }
     }
 
+    /// Calculate a HMAC for a block in the data section
+    pub(crate) fn calculate_data_hmac(
+        &self,
+        data: &[u8],
+    ) -> MacResult<<HmacSha256 as Mac>::OutputSize> {
+        let mut calc_hmac = HmacSha256::new_varkey(&self.1).unwrap();
+        calc_hmac.input(&self.0.to_le_bytes());
+        calc_hmac.input(&(data.len() as u32).to_le_bytes());
+        calc_hmac.input(data);
+        calc_hmac.result()
+    }
+
+    /// Calculate a HMAC for a block in the header section
+    pub(crate) fn calculate_header_hmac(
+        &self,
+        data: &[u8],
+    ) -> MacResult<<HmacSha256 as Mac>::OutputSize> {
+        let mut calc_hmac = HmacSha256::new_varkey(&self.1).unwrap();
+        calc_hmac.input(data);
+        calc_hmac.result()
+    }
+
     /// Verify that the header block is valid
     pub(crate) fn verify_header_block(&self, hmac: &[u8], data: &[u8]) -> bool {
         let mut calc_hmac = HmacSha256::new_varkey(&self.1).unwrap();
@@ -148,10 +178,17 @@ pub(crate) fn verify_sha256(data: &[u8], expected_sha: &[u8]) -> bool {
     expected_sha == &*Sha256::digest(&data)
 }
 
+pub(crate) fn sha256(data: &[u8]) -> Vec<u8> {
+    Sha256::digest(data).as_slice().to_vec()
+}
+
 #[derive(Debug, Error)]
+/// Errors encountered generating crypto keys
 pub enum KeyGenerationError {
+    /// Unexpected error when generating a key
     #[error("Could not generate key: {0}")]
     KeyGeneration(String),
+    /// KDF Options are not supported by this library
     #[error("Generation for KDF Options: {0:?} not implemented")]
     UnimplementedKdfOptions(binary::KdfParams),
 }

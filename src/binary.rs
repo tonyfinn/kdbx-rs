@@ -12,3 +12,4 @@ pub use read::{from_reader, open};
 pub use states::{Kdbx, Locked, Unlocked};
 pub use variant_dict::{Value as VariantDictValue, VariantDict, VariantParseError};
 pub use wrapper_fields::{Cipher, CompressionType, KdfAlgorithm, KdfParams};
+pub(crate) use wrapper_fields::{KDBX_MAGIC_NUMBER, KEEPASS_MAGIC_NUMBER};

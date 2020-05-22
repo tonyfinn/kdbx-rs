@@ -8,6 +8,8 @@ use block_modes::{BlockMode, Cbc};
 use std::io;
 use thiserror::Error;
 
+pub const HMAC_WRITE_BLOCK_SIZE: usize = 1024 * 1024;
+
 pub(crate) struct HMacReader<R>
 where
     R: io::Read,
@@ -67,6 +69,60 @@ impl<R: io::Read> io::Read for HMacReader<R> {
         }
         self.buf_idx += copy_len;
         Ok(copy_len)
+    }
+}
+
+pub(crate) struct HmacWriter<W>
+where
+    W: io::Write,
+{
+    block_idx: u64,
+    buffer: Vec<u8>,
+    inner: W,
+    hmac_key: crypto::HmacKey,
+}
+
+impl<W: io::Write> HmacWriter<W> {
+    pub(crate) fn new(inner: W, hmac_key: crypto::HmacKey) -> HmacWriter<W> {
+        HmacWriter {
+            block_idx: 0,
+            buffer: Vec::with_capacity(HMAC_WRITE_BLOCK_SIZE),
+            inner,
+            hmac_key,
+        }
+    }
+
+    fn write_block(&mut self) -> io::Result<()> {
+        let hmac = self
+            .hmac_key
+            .block_key(self.block_idx)
+            .calculate_data_hmac(&self.buffer);
+        self.inner.write_all(&hmac.code())?;
+        self.inner
+            .write_all(&(self.buffer.len() as u32).to_le_bytes())?;
+        self.inner.write_all(&self.buffer)?;
+        self.block_idx += 1;
+        Ok(())
+    }
+}
+
+impl<W: io::Write> io::Write for HmacWriter<W> {
+    fn write(&mut self, buf: &[u8]) -> io::Result<usize> {
+        let space_in_buffer = HMAC_WRITE_BLOCK_SIZE - self.buffer.len();
+        let write_size = usize::min(buf.len(), space_in_buffer);
+        self.buffer.extend_from_slice(&buf[0..write_size]);
+        if write_size < buf.len() {
+            // Internal buffer full, write it out
+            self.write_block()?;
+            self.buffer.clear();
+        }
+        Ok(write_size)
+    }
+
+    fn flush(&mut self) -> io::Result<()> {
+        self.write_block()?;
+        self.inner.flush()?;
+        Ok(())
     }
 }
 
@@ -180,6 +236,82 @@ where
     }
 }
 
+pub(crate) struct BlockCipherWriter<C, W>
+where
+    W: io::Write,
+    C: BlockCipher,
+{
+    inner: W,
+    buffer: GenericArray<u8, C::BlockSize>,
+    buf_idx: usize,
+    cipher: Cbc<C, Pkcs7>,
+}
+
+impl<C, W> BlockCipherWriter<C, W>
+where
+    W: io::Write,
+    C: BlockCipher,
+{
+    pub(crate) fn wrap(
+        inner: W,
+        key: crypto::CipherKey,
+        iv: &[u8],
+    ) -> Result<BlockCipherWriter<C, W>, BlockCipherError> {
+        Ok(BlockCipherWriter {
+            inner,
+            cipher: Cbc::new_var(&key.0, &iv)?,
+            buffer: GenericArray::default(),
+            buf_idx: 0,
+        })
+    }
+
+    fn write_buffer(&mut self) -> io::Result<()> {
+        let mut blocks_to_encrypt = [std::mem::take(&mut self.buffer)];
+        self.cipher.encrypt_blocks(&mut blocks_to_encrypt);
+        self.inner.write_all(&blocks_to_encrypt[0])?;
+        Ok(())
+    }
+}
+
+impl<C, W> io::Write for BlockCipherWriter<C, W>
+where
+    W: io::Write,
+    C: BlockCipher,
+{
+    fn write(&mut self, buf: &[u8]) -> io::Result<usize> {
+        for byte in buf.iter() {
+            self.buffer[self.buf_idx] = *byte;
+            self.buf_idx += 1;
+            if self.buf_idx == self.buffer.len() {
+                self.write_buffer()?;
+                self.buf_idx = 0;
+            }
+        }
+
+        Ok(buf.len())
+    }
+
+    fn flush(&mut self) -> io::Result<()> {
+        self.inner.flush()
+    }
+}
+
+impl<C, W> Drop for BlockCipherWriter<C, W>
+where
+    W: io::Write,
+    C: BlockCipher,
+{
+    fn drop(&mut self) {
+        Pkcs7::pad_block(&mut self.buffer, self.buf_idx).unwrap();
+        if let Err(e) = self.write_buffer() {
+            println!(
+                "Error finalising database write {}! Likely database corruption!",
+                e
+            )
+        };
+    }
+}
+
 pub(crate) fn kdbx4_read_stream<'a, R: io::Read + 'a>(
     inner: R,
     hmac_key: crypto::HmacKey,
@@ -224,4 +356,50 @@ pub(crate) fn kdbx4_read_stream<'a, R: io::Read + 'a>(
     };
 
     Ok(decompressed)
+}
+
+pub(crate) fn kdbx4_write_stream<'a, W: io::Write + 'a>(
+    inner: W,
+    hmac_key: crypto::HmacKey,
+    cipher_key: crypto::CipherKey,
+    cipher: binary::Cipher,
+    iv: &[u8],
+    compression: binary::CompressionType,
+) -> io::Result<Box<dyn io::Write + 'a>> {
+    let buffered = io::BufWriter::new(inner);
+    let verified = HmacWriter::new(buffered, hmac_key);
+    let encrypted: Box<dyn io::Write> = match cipher {
+        binary::Cipher::Aes256 => BlockCipherWriter::<Aes256, _>::wrap(verified, cipher_key, iv)
+            .map(|w| Box::new(w) as Box<dyn io::Write>)
+            .map_err(|_| {
+                io::Error::new(
+                    io::ErrorKind::InvalidInput,
+                    "Invalid cipher params - Could not create CBC block mode".to_string(),
+                )
+            }),
+        binary::Cipher::Aes128 => BlockCipherWriter::<Aes128, _>::wrap(verified, cipher_key, iv)
+            .map(|w| Box::new(w) as Box<dyn io::Write>)
+            .map_err(|_| {
+                io::Error::new(
+                    io::ErrorKind::InvalidInput,
+                    "Invalid cipher params - Could not create CBC block mode".to_string(),
+                )
+            }),
+        _ => Err(io::Error::new(
+            io::ErrorKind::InvalidInput,
+            format!("Unsupported cipher setting {:?}", cipher),
+        )),
+    }?;
+    let compressed: Box<dyn io::Write> = match compression {
+        binary::CompressionType::None => Box::new(encrypted),
+        binary::CompressionType::Gzip => Box::new(libflate::gzip::Encoder::new(encrypted)?),
+        binary::CompressionType::Unknown(_) => {
+            return Err(io::Error::new(
+                io::ErrorKind::InvalidInput,
+                format!("Unsupported compression type {:?}", compression),
+            ))
+        }
+    };
+
+    Ok(compressed)
 }

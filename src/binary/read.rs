@@ -5,9 +5,6 @@ use std::fs::File;
 use std::io::Read;
 use std::path::Path;
 
-pub const KEEPASS_MAGIC_NUMBER: u32 = 0x9AA2D903;
-pub const KDBX_MAGIC_NUMBER: u32 = 0xB54BFB67;
-
 /// Read a database from a input stream
 ///
 /// The database starts locked, use [`KdbxDatabase.unlock`] to unlock
@@ -18,13 +15,13 @@ pub fn from_reader<R: Read>(mut input: R) -> Result<Kdbx<Locked>, errors::OpenEr
     let mut buffer = [0u8; 4];
     caching_reader.read_exact(&mut buffer)?;
 
-    if u32::from_le_bytes(buffer) != KEEPASS_MAGIC_NUMBER {
+    if u32::from_le_bytes(buffer) != super::KEEPASS_MAGIC_NUMBER {
         return Err(errors::OpenError::NonKeepassFormat);
     }
 
     caching_reader.read_exact(&mut buffer)?;
 
-    if u32::from_le_bytes(buffer) != KDBX_MAGIC_NUMBER {
+    if u32::from_le_bytes(buffer) != super::KDBX_MAGIC_NUMBER {
         return Err(errors::OpenError::UnsupportedFileFormat);
     }
 

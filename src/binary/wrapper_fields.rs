@@ -1,9 +1,12 @@
 use super::errors::HeaderError;
-use super::header::OuterHeaderId;
-use super::variant_dict;
+use super::header::{HeaderField, InnerHeaderId, OuterHeaderId};
+use super::variant_dict::{self, VariantDict};
 use crate::utils;
 use std::convert::{TryFrom, TryInto};
 use uuid::Uuid;
+
+pub const KEEPASS_MAGIC_NUMBER: u32 = 0x9AA2D903;
+pub const KDBX_MAGIC_NUMBER: u32 = 0xB54BFB67;
 
 const AES128_UUID: &str = "61ab05a1-9464-41c3-8d74-3a563df8dd35";
 const AES256_UUID: &str = "31c1f2e6-bf71-4350-be58-05216afc5aff";
@@ -52,6 +55,57 @@ impl From<Cipher> for uuid::Uuid {
     }
 }
 
+impl From<Cipher> for HeaderField<OuterHeaderId> {
+    fn from(cipher: Cipher) -> HeaderField<OuterHeaderId> {
+        let uuid: uuid::Uuid = cipher.into();
+        HeaderField::new(OuterHeaderId::CipherId, uuid.as_bytes().to_vec())
+    }
+}
+
+/// Inner stream cipher identifier used for encrypting protected fields
+#[derive(Debug, PartialEq, Eq, Clone)]
+pub enum InnerStreamCipher {
+    /// ArcFour algorithm
+    ArcFour,
+    /// Salsa20 stream cipher
+    Salsa20,
+    /// ChaCha20 stream cipher
+    ChaCha20,
+    /// Unknown stream cipher
+    Unknown(u32),
+}
+
+impl From<InnerStreamCipher> for HeaderField<InnerHeaderId> {
+    fn from(cipher: InnerStreamCipher) -> HeaderField<InnerHeaderId> {
+        HeaderField::new(
+            InnerHeaderId::InnerRandomStreamCipherId,
+            u32::from(cipher).to_le_bytes().as_ref().to_vec(),
+        )
+    }
+}
+
+impl From<u32> for InnerStreamCipher {
+    fn from(id: u32) -> InnerStreamCipher {
+        match id {
+            1 => InnerStreamCipher::ArcFour,
+            2 => InnerStreamCipher::Salsa20,
+            3 => InnerStreamCipher::ChaCha20,
+            x => InnerStreamCipher::Unknown(x),
+        }
+    }
+}
+
+impl From<InnerStreamCipher> for u32 {
+    fn from(id: InnerStreamCipher) -> u32 {
+        match id {
+            InnerStreamCipher::ArcFour => 1,
+            InnerStreamCipher::Salsa20 => 2,
+            InnerStreamCipher::ChaCha20 => 3,
+            InnerStreamCipher::Unknown(x) => x,
+        }
+    }
+}
+
 #[derive(Debug, PartialEq, Eq, Clone, Copy)]
 #[allow(non_camel_case_types)]
 /// Algorithm used for converting from credentials to crypto keys
@@ -88,7 +142,7 @@ impl From<KdfAlgorithm> for uuid::Uuid {
     }
 }
 
-#[derive(Debug, PartialEq, Eq)]
+#[derive(Debug, Clone, PartialEq, Eq)]
 /// Options for converting credentials to crypto keys
 pub enum KdfParams {
     /// Argon 2 KDF
@@ -120,9 +174,9 @@ pub enum KdfParams {
     },
 }
 
-impl TryFrom<variant_dict::VariantDict> for KdfParams {
+impl TryFrom<VariantDict> for KdfParams {
     type Error = HeaderError;
-    fn try_from(mut vdict: variant_dict::VariantDict) -> Result<Self, HeaderError> {
+    fn try_from(mut vdict: VariantDict) -> Result<Self, HeaderError> {
         let uuid = vdict
             .remove("$UUID")
             .and_then(|uuid_val| uuid_val.try_into().ok())
@@ -161,8 +215,8 @@ impl TryFrom<variant_dict::VariantDict> for KdfParams {
     }
 }
 
-impl Into<variant_dict::VariantDict> for KdfParams {
-    fn into(self) -> variant_dict::VariantDict {
+impl Into<VariantDict> for KdfParams {
+    fn into(self) -> VariantDict {
         let mut vdict = variant_dict::VariantDict::new();
         match self {
             KdfParams::Argon2 {
@@ -214,6 +268,15 @@ impl Into<variant_dict::VariantDict> for KdfParams {
     }
 }
 
+impl From<KdfParams> for HeaderField<OuterHeaderId> {
+    fn from(params: KdfParams) -> HeaderField<OuterHeaderId> {
+        let mut buf = Vec::new();
+        let vdict: VariantDict = params.into();
+        variant_dict::write_variant_dict(&mut buf, &vdict).unwrap();
+        HeaderField::new(OuterHeaderId::KdfParameters, buf)
+    }
+}
+
 impl KdfParams {
     fn opt_from_vdict<T>(
         key: &str,
@@ -258,6 +321,16 @@ impl From<u32> for CompressionType {
             COMPRESSION_TYPE_GZIP => CompressionType::Gzip,
             _ => CompressionType::Unknown(id),
         }
+    }
+}
+
+impl From<CompressionType> for HeaderField<OuterHeaderId> {
+    fn from(compression_type: CompressionType) -> HeaderField<OuterHeaderId> {
+        let compression_type_id: u32 = compression_type.into();
+        HeaderField::new(
+            OuterHeaderId::KdfParameters,
+            Vec::from(compression_type_id.to_le_bytes().as_ref()),
+        )
     }
 }
 

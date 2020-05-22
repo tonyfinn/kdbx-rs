@@ -38,6 +38,9 @@ pub enum UnlockError {
     /// The inner header is invalid
     #[error("Inner header invalid - {0}")]
     InvalidInnerHeader(#[from] HeaderError),
+    /// The inner header is invalid
+    #[error("Corrupt database. XML data is invald - {0}")]
+    InvalidXml(#[from] crate::errors::XmlReadError),
 }
 
 #[derive(Debug, Error)]
@@ -64,4 +67,26 @@ pub enum HeaderError {
     /// The database cipher is not supported by this library.
     #[error("Incompatible database - Unknown cipher {0:?}")]
     UnknownCipher(uuid::Uuid),
+}
+
+#[derive(Debug, Error)]
+/// Errors encountered writing a database
+pub enum WriteError {
+    /// The reader failed before the header was entirely read
+    #[error("Error reading database header - {0}")]
+    Io(#[from] std::io::Error),
+    /// The database could not be serialized to XML
+    #[error("Error serializing database to XML - {0}")]
+    XmlWrite(#[from] crate::xml::serialize::Error),
+    /// The database could not be written to as `set_key()` has not been called.
+    #[error("No key to write database with")]
+    MissingKeys,
+}
+
+#[derive(Debug, Error)]
+/// Errors encountered writing a database
+pub enum DatabaseCreationError {
+    /// Could not obtain secure random data
+    #[error("Error getting RNG data for keys")]
+    Random(#[from] getrandom::Error),
 }
