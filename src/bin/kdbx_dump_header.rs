@@ -1,3 +1,7 @@
+//! Prints the parsed header of a kdbx database
+//!
+//! Primarily for investigating the kdbx format.
+
 use kdbx_rs;
 
 fn print_kdf(params: &kdbx_rs::binary::KdfParams) {
@@ -35,6 +39,9 @@ fn print_kdf(params: &kdbx_rs::binary::KdfParams) {
 
 fn main() -> Result<(), kdbx_rs::Error> {
     let args: Vec<String> = std::env::args().collect();
+    if args.len() < 1 {
+        println!("Usage: kdbx-dump-header <path to kdbx file>");
+    }
     let kdbx = kdbx_rs::open(&args[1])?;
     let header = kdbx.header();
     println!("Cipher: {:?}", header.cipher);

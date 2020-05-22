@@ -128,7 +128,7 @@ data is terminated by a single null byte with no length field.
 * 0x0A - Inner stream ID
   * Currently one byte
   * Algorithm used to encrypt internally protected data
-  * See XML Format > Protected Values### Encryption keys
+  * See XML Format > Protected Values
 
 
 
@@ -147,8 +147,8 @@ of that. The components are ordered as follows:
 * Keyfile
 * Windows user account
 
-For example, for a password only key, this ends up being sha256(sha256(password)),
-while a keyfile and password combination, this ends up being sha256(sha256(password),sha256(keyfile)).
+For example, for a password only key, this ends up being `sha256(sha256(password))`,
+while a keyfile and password combination, this ends up being `sha256(sha256(password),sha256(keyfile))`.
 
 #### Master Key
 
@@ -159,19 +159,19 @@ processed composite key.
 #### Cipher Key
 
 The cipher key is used for encrypting/decrypting the database. It is calculated as 
-sha512(master seed, master key).
+`sha512(master seed, master key)`.
 
 #### HMAC Key - KDBX 4+
 
 The HMAC key is used to calculate per-block keys for verifying that data has not
-been tampered with. It is calculated as sha512(master seed, master key, 1). 1 is the
+been tampered with. It is calculated as `sha512(master seed, master key, 1)`. `1` is the
 literal 8-bit value 1.
 
 #### HMAC Block Key - KDBX 4+
 
 A new key is generated to verify every block of data in the encrypted stream. It is
-calculated as sha512(block index, hmac key). The block index is a 64bit unsigned
-integer. Header data is treated as having a block index of u64::MAX.
+calculated as `sha512(block index, hmac key)`. The block index is a 64bit unsigned
+integer. Header data is treated as having a block index of `u64::MAX`.
 
 
 
@@ -206,7 +206,7 @@ In KDBX 4, each of these block has the following format:
 * Ciphertext length (4 bytes)
 * Ciphertext (variable length)
 
-The HMAC is verified as HMAC-Sha256(block index, ciphertext length, ciphertext).
+The HMAC is verified as `HMAC-Sha256(block index, ciphertext length, ciphertext)`.
 The block index is the position of the block in the file.
 
 #### Encrypted Data - KDBX 4
@@ -341,4 +341,6 @@ same cipher should be used to decrypt every value.
 * [KDBX 4](https://keepass.info/help/kb/kdbx_4.html) - Covers changes from KDBX 3.1 to 4.0
     * One minor inaccuracy: 
         The doc describes HMAC keys as being calculated with SHA256. While HMAC-SHA256 is the algorithm
-        used for calculating the HMACS, the key used is actually SHA512(master seed, master key, 1)
+        used for calculating the HMACS, the key used is actually `SHA512(master seed, master key, 1)`
+* [KeePassXC source code](https://github.com/keepassxreboot/keepassxc/tree/develop/src/format)
+* [KeePass source code](https://keepass.info/download.html) ([unofficial github mirror](https://github.com/dlech/KeePass2.x))
