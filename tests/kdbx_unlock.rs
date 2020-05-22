@@ -14,5 +14,5 @@ fn kdbx4_argon2() -> Result<(), kdbx_rs::Error> {
 
     let db = kdbx_rs::from_reader(file).unwrap();
     let key = kdbx_rs::CompositeKey::from_password("kdbxrs");
-    db.unlock(&key).map(|_| ()).map_err(|e| e.0.into())
+    Ok(db.unlock(&key).map(|_| ())?)
 }

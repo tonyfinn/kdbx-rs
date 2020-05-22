@@ -3,6 +3,7 @@
 pub use crate::binary::errors::{
     DatabaseCreationError, HeaderError, OpenError, UnlockError, WriteError,
 };
+pub use crate::binary::FailedUnlock;
 pub use crate::crypto::KeyGenerationError;
 pub use crate::xml::parse::Error as XmlReadError;
 pub use crate::xml::serialize::Error as XmlWriteError;
@@ -32,4 +33,10 @@ pub enum Error {
     /// Failed generating crypto keys
     #[error("Failed to create encryption keys")]
     KeyGeneration(#[from] KeyGenerationError),
+}
+
+impl From<FailedUnlock> for Error {
+    fn from(funlock: FailedUnlock) -> Error {
+        Error::Unlock(funlock.1)
+    }
 }

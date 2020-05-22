@@ -13,11 +13,7 @@
 //! # let file_path = "./res/kdbx4-argon2.kdbx";
 //! let kdbx = kdbx_rs::open(file_path)?;
 //! let key = CompositeKey::from_password("kdbxrs");
-//! // If unlock fails, the locked database is returned to you
-//! // so you can e.g. prompt the user to try another password
-//! //
-//! // Here we just return if incorrect
-//! let unlocked = kdbx.unlock(&key).map_err(|(error, locked)| error)?;
+//! let unlocked = kdbx.unlock(&key)?;
 //! # Ok(())
 //! # }
 //! ```

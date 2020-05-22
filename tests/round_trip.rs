@@ -35,7 +35,7 @@ fn round_trip() -> Result<(), kdbx_rs::Error> {
     kdbx.write(&mut output_buf)?;
 
     let reparsed = kdbx_rs::from_reader(&*output_buf)?;
-    let unlocked = reparsed.unlock(&key()).map_err(|(e, _db)| e)?;
+    let unlocked = reparsed.unlock(&key())?;
     assert_eq!(unlocked.meta().database_name, DATABASE_NAME);
     assert_eq!(unlocked.meta().database_description, DATABASE_DESC);
     let root = unlocked.root().unwrap();

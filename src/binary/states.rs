@@ -33,6 +33,16 @@ impl<T: KdbxState> Kdbx<T> {
     }
 }
 
+/// Represents a failed attempt at unlocking a database
+/// Includes the locked database and the reason the unlockfailed.
+pub struct FailedUnlock(pub Kdbx<Locked>, pub errors::UnlockError);
+
+impl From<FailedUnlock> for errors::UnlockError {
+    fn from(funlock: FailedUnlock) -> errors::UnlockError {
+        funlock.1
+    }
+}
+
 #[derive(Debug)]
 /// An unlocked kdbx file, allowing access to stored credentials
 pub struct Unlocked {
@@ -234,11 +244,11 @@ impl Kdbx<Locked> {
     pub fn unlock(
         self,
         key: &crypto::CompositeKey,
-    ) -> Result<Kdbx<Unlocked>, (errors::UnlockError, Kdbx<Locked>)> {
+    ) -> Result<Kdbx<Unlocked>, FailedUnlock> {
         let composed_key = key.composed();
         let master_key = match composed_key.master_key(&self.state.header.kdf_params) {
             Ok(master_key) => master_key,
-            Err(e) => return Err((errors::UnlockError::from(e), self)),
+            Err(e) => return Err(FailedUnlock(self, errors::UnlockError::from(e))),
         };
 
         let hmac_key = master_key.hmac_key(&self.state.header.master_seed);
@@ -265,10 +275,10 @@ impl Kdbx<Locked> {
                         xml_data: Some(data),
                     },
                 }),
-                Err(e) => Err((e, self)),
+                Err(e) => Err(FailedUnlock(self, e)),
             }
         } else {
-            Err((errors::UnlockError::HmacInvalid, self))
+            Err(FailedUnlock(self, errors::UnlockError::HmacInvalid))
         }
     }
 }
