@@ -5,20 +5,27 @@ Library for reading and writing KDBX libraries from Rust
 
 ## Comparison of Rust Keepass Libraries (as of May 2020)
 
-|                  |[`kdbx-rs`]|[`kdbx4`]|[`rust-kpdb`]|[`keepass-rs`]|[`rust-keepass`]|
-|------------------|-----------|---------|-------------|--------------|----------------|
-| License          | GPLv3+    | MIT     | MIT/Apache  | MIT          | ISC            |
-| KDF Support      | Argon2/AES| Argon2/AES | AES      | Argon2/AES   | AES            |
-| Cipher support   | AES | AES/Chacha20  | AES/Salsa20 | AES/Chacha20 | AES            |
-| .kdbx 4 support  | Yes       |Read only| No          | Read only    | No             |
-| .kdbx 3 support  | No        | No      | Yes         | Read only    | No             |
-| .kdb support     | No        | No      | No          | No           | Yes            |
-| Memory protection| No        | No      | No          | Yes          | Yes            |
-| Keyfile auth     | Yes       | Yes     | Yes         | Yes          | Yes            |
-| Windows  auth    | No        | No      | No          | No           | No             |
-| KeepassXC OTPs   | No        | No      | No          | No           | No             |
-| Custom fields    | Yes       | Yes     | No          | Yes          | No             |
-| Entry History    | Yes       | Yes     | Yes         | No           | No             |
+|                  |[`kdbx-rs`]|[`keepass-rs`]| [`kdbx4`] |[`rust-kpdb`]|[`rust-keepass`]|
+|------------------|-----------|--------------|-----------|-------------|----------------|
+| License          | GPLv3+    | MIT          | MIT       | MIT/Apache  | ISC            |
+| **Formats**      |           |              |           |             |                |
+| .kdbx 4          | Yes       | Read only    | Read only | No          | No             |
+| .kdbx 3          | No        | Read only    | No        | Yes         | No             |
+| .kdb             | No        | No           | No        | No          | Yes            |
+| **Algorithms**   |           |              |           |             |                |
+| AES KDF          | Yes       | Yes          | Yes       | Yes         | Yes            |
+| Argon 2 KDF      | Yes       | Yes          | Yes       | No          | Yes            |
+| AES Cipher       | Yes       | Yes          | Yes       | Yes         | Yes            |
+| Chacha20 Cipher  | No        | Yes          | Yes       | No          | No             |
+| Salsa20 Cipher   | No        | Yes          | Yes       | Yes         | No             |
+| TwoFish Cipher   | No        | Yes          | No        | Yes         | No             |
+| **Features**     |           |              |           |             |                |
+| Memory protection| No        | Yes          | No        | No          | Yes            |
+| Keyfile auth     | Yes       | Yes          | Yes       | Yes         | Yes            |
+| Windows  auth    | No        | No           | No        | No          | No             |
+| KeepassXC OTPs   | No        | No           | No        | No          | No             |
+| Custom fields    | Yes       | Yes          | Yes       | No          | No             |
+| Entry History    | Yes       | No           | Yes       | Yes         | No             |
 
 
 [`kdbx-rs`]: https://gitlab.com/tonyfinn/kdbx-rs
