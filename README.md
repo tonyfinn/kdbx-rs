@@ -16,9 +16,9 @@ Library for reading and writing KDBX libraries from Rust
 | AES KDF          | Yes       | Yes          | Yes       | Yes         | Yes            |
 | Argon 2 KDF      | Yes       | Yes          | Yes       | No          | Yes            |
 | AES Cipher       | Yes       | Yes          | Yes       | Yes         | Yes            |
+| TwoFish Cipher   | Yes       | Yes          | No        | Yes         | No             |
 | Chacha20 Cipher  | No        | Yes          | Yes       | No          | No             |
 | Salsa20 Cipher   | No        | Yes          | Yes       | Yes         | No             |
-| TwoFish Cipher   | No        | Yes          | No        | Yes         | No             |
 | **Features**     |           |              |           |             |                |
 | Memory protection| No        | Yes          | No        | No          | Yes            |
 | Keyfile auth     | Yes       | Yes          | Yes       | Yes         | Yes            |

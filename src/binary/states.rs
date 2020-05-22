@@ -69,9 +69,7 @@ impl Unlocked {
 
         crate::xml::write_xml(&mut encrypted_stream, &self.database)?;
 
-        let hmacw = encrypted_stream.finish()?;
-        let inner = hmacw.finish()?;
-        inner.flush()?;
+        encrypted_stream.finish()?;
         Ok(encrypted_buf)
     }
 }

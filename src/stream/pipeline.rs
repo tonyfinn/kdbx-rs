@@ -3,9 +3,24 @@ use crate::crypto;
 use std::io;
 
 use aes::{Aes128, Aes256};
+use aes::block_cipher_trait::BlockCipher;
 use derive_more::From;
+use twofish::Twofish;
 
 use super::{BlockCipherReader, BlockCipherWriter, BlockCipherWriterExt, HMacReader, HmacWriter};
+
+fn block_cipher_read_stream<C, R>(inner: R, key: crypto::CipherKey, iv: &[u8]) -> io::Result<BlockCipherReader<C, R>>
+    where C: BlockCipher,
+        R: io::Read
+{
+    BlockCipherReader::<C, _>::wrap(inner, key, iv)
+        .map_err(|_| {
+            io::Error::new(
+                io::ErrorKind::InvalidInput,
+                "Invalid cipher params - Could not create CBC block mode".to_string(),
+            )
+        })
+}
 
 pub(crate) fn kdbx4_read_stream<'a, R: io::Read + 'a>(
     inner: R,
@@ -18,27 +33,20 @@ pub(crate) fn kdbx4_read_stream<'a, R: io::Read + 'a>(
     let buffered = io::BufReader::new(inner);
     let verified = HMacReader::new(buffered, hmac_key);
     let decrypted: Box<dyn io::Read> = match cipher {
-        binary::Cipher::Aes256 => BlockCipherReader::<Aes256, _>::wrap(verified, cipher_key, iv)
-            .map(|r| Box::new(r) as Box<dyn io::Read>)
-            .map_err(|_| {
-                io::Error::new(
-                    io::ErrorKind::InvalidInput,
-                    "Invalid cipher params - Could not create CBC block mode".to_string(),
-                )
-            }),
-        binary::Cipher::Aes128 => BlockCipherReader::<Aes128, _>::wrap(verified, cipher_key, iv)
-            .map(|r| Box::new(r) as Box<dyn io::Read>)
-            .map_err(|_| {
-                io::Error::new(
-                    io::ErrorKind::InvalidInput,
-                    "Invalid cipher params - Could not create CBC block mode".to_string(),
-                )
-            }),
-        _ => Err(io::Error::new(
+        binary::Cipher::Aes256 => {
+            Box::new(block_cipher_read_stream::<Aes256, _>(verified, cipher_key, iv)?)
+        },
+        binary::Cipher::Aes128 => {
+            Box::new(block_cipher_read_stream::<Aes128, _>(verified, cipher_key, iv)?)
+        },
+        binary::Cipher::TwoFish => {
+            Box::new(block_cipher_read_stream::<Twofish, _>(verified, cipher_key, iv)?)
+        },
+        _ => return Err(io::Error::new(
             io::ErrorKind::InvalidInput,
             format!("Unsupported cipher setting {:?}", cipher),
         )),
-    }?;
+    };
     let decompressed: Box<dyn io::Read> = match compression {
         binary::CompressionType::None => Box::new(decrypted),
         binary::CompressionType::Gzip => Box::new(libflate::gzip::Decoder::new(decrypted)?),
@@ -68,14 +76,17 @@ impl<'a, W> Kdbx4Write<'a, W>
 where
     W: 'a + io::Write,
 {
-    pub(crate) fn finish(self) -> io::Result<HmacWriter<'a, W>> {
-        match self.0 {
-            Kdbx4WriteInner::Raw(mut inner) => inner.finish(),
+    pub(crate) fn finish(self) -> io::Result<W> {
+        let mut encryption = match self.0 {
+            Kdbx4WriteInner::Raw(inner) => Ok(inner),
             Kdbx4WriteInner::Gzip(gz) => gz
                 .finish()
-                .into_result()
-                .and_then(|mut inner| inner.finish()),
-        }
+                .into_result(),
+        }?;
+        let hmacw = encryption.finish()?;
+        let mut inner = hmacw.finish()?;
+        inner.flush()?;
+        Ok(inner)
     }
 }
 
@@ -97,6 +108,19 @@ where
     }
 }
 
+pub(crate) fn block_cipher_write_stream<C, W>(inner: W, key: crypto::CipherKey, iv: &[u8]) -> io::Result<BlockCipherWriter<C, W>>
+    where W: io::Write,
+        C: BlockCipher
+{
+    BlockCipherWriter::<C, _>::wrap(inner, key, iv)
+        .map_err(|_| {
+            io::Error::new(
+                io::ErrorKind::InvalidInput,
+                "Invalid cipher params - Could not create CBC block mode".to_string(),
+            )
+        })
+}
+
 pub(crate) fn kdbx4_write_stream<'a, W: 'a + io::Write>(
     inner: W,
     hmac_key: crypto::HmacKey,
@@ -107,27 +131,14 @@ pub(crate) fn kdbx4_write_stream<'a, W: 'a + io::Write>(
 ) -> io::Result<Kdbx4Write<'a, W>> {
     let verified = HmacWriter::new(inner, hmac_key);
     let encrypted: Box<dyn BlockCipherWriterExt<HmacWriter<'a, W>> + 'a> = match cipher {
-        binary::Cipher::Aes256 => BlockCipherWriter::<Aes256, _>::wrap(verified, cipher_key, iv)
-            .map(|w| Box::new(w) as Box<dyn BlockCipherWriterExt<'a, _>>)
-            .map_err(|_| {
-                io::Error::new(
-                    io::ErrorKind::InvalidInput,
-                    "Invalid cipher params - Could not create CBC block mode".to_string(),
-                )
-            }),
-        binary::Cipher::Aes128 => BlockCipherWriter::<Aes128, _>::wrap(verified, cipher_key, iv)
-            .map(|w| Box::new(w) as Box<dyn BlockCipherWriterExt<'a, _>>)
-            .map_err(|_| {
-                io::Error::new(
-                    io::ErrorKind::InvalidInput,
-                    "Invalid cipher params - Could not create CBC block mode".to_string(),
-                )
-            }),
-        _ => Err(io::Error::new(
+        binary::Cipher::Aes256 => Box::new(block_cipher_write_stream::<Aes256, _>(verified, cipher_key, iv)?),
+        binary::Cipher::Aes128 => Box::new(block_cipher_write_stream::<Aes128, _>(verified, cipher_key, iv)?),
+        binary::Cipher::TwoFish => Box::new(block_cipher_write_stream::<Twofish, _>(verified, cipher_key, iv)?),
+        _ => return Err(io::Error::new(
             io::ErrorKind::InvalidInput,
             format!("Unsupported cipher setting {:?}", cipher),
         )),
-    }?;
+    };
     Ok(match compression {
         binary::CompressionType::None => Kdbx4WriteInner::Raw(encrypted).into(),
         binary::CompressionType::Gzip => {
