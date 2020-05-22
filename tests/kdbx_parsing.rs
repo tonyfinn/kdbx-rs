@@ -14,7 +14,7 @@ fn kdbx4_parsing() -> Result<(), kdbx_rs::Error> {
     let db = kdbx_rs::from_reader(file).unwrap();
     let key = kdbx_rs::CompositeKey::from_password("kdbxrs");
     let db = db.unlock(&key).map_err(|e| e.0)?;
-    let xml = kdbx_rs::xml::parse_xml(db.xml_data())?;
+    let xml = kdbx_rs::xml::parse_xml(db.raw_xml().unwrap())?;
 
     assert_eq!(1, xml.groups.len());
     assert_eq!("Root", xml.groups[0].name);
