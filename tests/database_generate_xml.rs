@@ -26,7 +26,7 @@ fn generate_xml() -> Result<(), kdbx_rs::Error> {
     expected_path.push("tests");
     expected_path.push("generate_xml.xml");
 
-    let expected_xml_string = read_to_string(expected_path).unwrap();
+    let expected_xml_string = read_to_string(expected_path).unwrap().replace("\r\n", "\n");
 
     let mut db = kdbx_rs::Database::default();
     db.meta.database_name = "BarName".to_string();
@@ -46,7 +46,6 @@ fn generate_xml() -> Result<(), kdbx_rs::Error> {
     let mut output_buffer = Vec::new();
     kdbx_rs::xml::write_xml(&mut output_buffer, &db)?;
     let xml_string = String::from_utf8(output_buffer).unwrap();
-
     assert_eq!(expected_xml_string, xml_string);
     Ok(())
 }
