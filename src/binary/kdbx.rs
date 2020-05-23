@@ -96,8 +96,8 @@ impl Unlocked {
             self.header.compression_type,
         )?;
         self.inner_header.write(&mut encrypted_stream)?;
-
-        crate::xml::write_xml(&mut encrypted_stream, &self.database)?;
+        let mut stream_cipher = self.inner_header.inner_stream_cipher.stream_cipher(&self.inner_header.inner_stream_key)?;
+        crate::xml::write_xml(&mut encrypted_stream, &self.database, stream_cipher.as_mut())?;
 
         encrypted_stream.finish()?;
         Ok(encrypted_buf)

@@ -26,6 +26,7 @@ fn round_trip() -> Result<(), kdbx_rs::Error> {
     let group_times = group.times.clone();
     let mut entry = Entry::default();
     entry.add_field(Field::new("Title", ENTRY_NAME));
+    entry.set_password(ENTRY_PASSWORD);
     entry.add_field(Field::new("Password", ENTRY_PASSWORD));
     let entry_times = entry.times.clone();
     group.entries.push(entry);

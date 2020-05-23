@@ -85,4 +85,7 @@ pub enum WriteError {
     /// The database could not be written to as `set_key()` has not been called.
     #[error("No key to write database with")]
     MissingKeys,
+    /// The inner stream is invalid
+    #[error("Cannot create inner stream to write protected values - {0}")]
+    InnerStream(#[from] InnerStreamError),
 }

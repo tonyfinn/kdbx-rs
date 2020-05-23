@@ -38,6 +38,14 @@ impl Field {
             value: Value::Standard(value.to_string()),
         }
     }
+
+    /// Create a new field without memory protection
+    pub fn new_protected(key: &str, value: &str) -> Field {
+        Field {
+            key: key.to_string(),
+            value: Value::Protected(value.to_string()),
+        }
+    }
 }
 
 #[derive(Debug, Clone, PartialEq, Eq)]
@@ -130,8 +138,8 @@ impl Entry {
     /// Return the TOTP of this item, as stored by KeepassXC
     pub fn set_otp(&mut self, otp: Otp) {
         match self.find_mut("otp") {
-            Some(f) => f.value = Value::Standard(otp.url.to_string()),
-            None => self.fields.push(Field::new("otp", otp.url.as_ref())),
+            Some(f) => f.value = Value::Protected(otp.url.to_string()),
+            None => self.fields.push(Field::new_protected("otp", otp.url.as_ref())),
         }
     }
 
@@ -144,8 +152,8 @@ impl Entry {
     pub fn set_password<S: ToString>(&mut self, password: S) {
         let password = password.to_string();
         match self.find_mut("Password") {
-            Some(f) => f.value = Value::Standard(password),
-            None => self.fields.push(Field::new("Password", &password)),
+            Some(f) => f.value = Value::Protected(password),
+            None => self.fields.push(Field::new_protected("Password", &password)),
         }
     }
 }
@@ -180,6 +188,20 @@ impl Group {
     /// Add a new entry to this group
     pub fn add_entry(&mut self, entry: Entry) {
         self.entries.push(entry);
+    }
+    
+    /// Iterator through all entries in this group or children
+    pub fn recursive_entries<'a>(&'a self) -> Box<dyn Iterator<Item=&Entry> + 'a> {
+        Box::new(self.children.iter()
+            .flat_map(|c| c.recursive_entries())
+            .chain(self.entries.iter()))
+    }
+    
+    /// Iterator through all entries in this group or children
+    pub fn recursive_entries_mut<'a>(&'a mut self) -> Box<dyn Iterator<Item=&mut Entry> + 'a> {
+        Box::new(self.children.iter_mut()
+            .flat_map(|c| c.recursive_entries_mut())
+            .chain(self.entries.iter_mut()))
     }
 }
 

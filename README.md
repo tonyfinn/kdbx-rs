@@ -55,8 +55,8 @@ kdbx.write(&mut file)?;
 | .kdbx 4          | Yes       | Read only    | Read only | No          | No             |
 | .kdbx 3          | No        | Read only    | No        | Yes         | No             |
 | .kdb             | No        | No           | No        | No          | Yes            |
-| **Algorithms**   |           |              |           |             |                |
-| *KDFS*           |           |              |           |             |                |
+| **Algorithms**                                                                         |
+| *KDFs*                                                                                 |
 | AES              | Yes       | Yes          | Yes       | Yes         | Yes            |
 | Argon 2          | Yes       | Yes          | Yes       | No          | Yes            |
 |*Database Ciphers*|           |              |           |             |                |

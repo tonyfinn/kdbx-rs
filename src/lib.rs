@@ -25,6 +25,9 @@
 //! # }
 //! ```
 //!
+//! Alternatively, [`kdbx_rs::from_reader`] can be used to open a database
+//! from a non file source (such as in-memory or a network stream)
+//!
 //! # Generating a new password database
 //!
 //! A database can be created in memory by using the [`Database::default()`]
@@ -75,8 +78,6 @@
 //! # Ok(())
 //! # }
 //! ```
-//! Alternatively, [`kdbx_rs::from_reader`] can be used to open a database
-//! from a non file source (such as in-memory or a network stream)
 //!
 //! [`CompositeKey`]: crate::CompositeKey
 //! [`Database`]: crate::Database

@@ -2,7 +2,7 @@
 //!
 //! Primarily for verifying kdbx-rs changes
 
-use kdbx_rs::database::{Entry, Field, Group, Times};
+use kdbx_rs::database::{Entry, Group, Times};
 use kdbx_rs::{CompositeKey, Database, Error, Kdbx};
 
 use chrono::NaiveDate;
@@ -37,8 +37,8 @@ fn main() -> Result<(), Error> {
     group.uuid = Uuid::from_u128(0x1234_5678);
     group.times = sample_times();
     let mut entry = Entry::default();
-    entry.add_field(Field::new("Title", "Bar"));
-    entry.add_field(Field::new("Password", "kdbxrs"));
+    entry.set_title("Bar");
+    entry.set_password("kdbxrs");
     entry.uuid = Uuid::from_u128(0x0065_4321);
     entry.times = sample_times();
     group.entries.push(entry);

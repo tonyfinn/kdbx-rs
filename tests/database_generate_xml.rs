@@ -1,5 +1,6 @@
 use kdbx_rs;
 use kdbx_rs::database::{Entry, Group, Times};
+use kdbx_rs::xml::{write_xml, default_stream_cipher_with_key};
 
 use chrono::NaiveDate;
 use std::fs::read_to_string;
@@ -44,7 +45,9 @@ fn generate_xml() -> Result<(), kdbx_rs::Error> {
     db.groups.push(group);
 
     let mut output_buffer = Vec::new();
-    kdbx_rs::xml::write_xml(&mut output_buffer, &db)?;
+
+    let key = vec![0xA0; 16];
+    write_xml(&mut output_buffer, &db, &mut default_stream_cipher_with_key(key))?;
     let xml_string = String::from_utf8(output_buffer).unwrap();
     assert_eq!(expected_xml_string, xml_string);
     Ok(())
