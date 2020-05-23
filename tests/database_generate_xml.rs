@@ -23,7 +23,7 @@ fn generate_xml() -> Result<(), kdbx_rs::Error> {
     let mut expected_path = PathBuf::new();
     expected_path.push(env!("CARGO_MANIFEST_DIR"));
     expected_path.push("res");
-    expected_path.push("tests");
+    expected_path.push("test_output");
     expected_path.push("generate_xml.xml");
 
     let expected_xml_string = read_to_string(expected_path).unwrap().replace("\r\n", "\n");

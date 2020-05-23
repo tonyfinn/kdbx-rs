@@ -7,6 +7,7 @@ fn load_kdbx4_argon2() {
     let mut file_path = PathBuf::new();
     file_path.push(env!("CARGO_MANIFEST_DIR"));
     file_path.push("res");
+    file_path.push("test_input");
     file_path.push("kdbx4-argon2.kdbx");
 
     let file = fs::File::open(file_path).unwrap();
@@ -50,6 +51,7 @@ fn load_kdbx4_aes256() {
     let mut file_path = PathBuf::new();
     file_path.push(env!("CARGO_MANIFEST_DIR"));
     file_path.push("res");
+    file_path.push("test_input");
     file_path.push("kdbx4-aes256.kdbx");
 
     let file = fs::File::open(file_path).unwrap();
@@ -72,6 +74,7 @@ fn load_kdbx4_aes256_legacy() {
     let mut file_path = PathBuf::new();
     file_path.push(env!("CARGO_MANIFEST_DIR"));
     file_path.push("res");
+    file_path.push("test_input");
     file_path.push("kdbx4-aes256-legacy.kdbx");
 
     let file = fs::File::open(file_path).unwrap();
