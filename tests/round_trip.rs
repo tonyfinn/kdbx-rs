@@ -1,5 +1,5 @@
-use kdbx_rs::{self, Kdbx, CompositeKey};
 use kdbx_rs::database::{Entry, Field, Group};
+use kdbx_rs::{self, CompositeKey, Kdbx};
 
 const DATABASE_NAME: &str = "BarName";
 const DATABASE_DESC: &str = "BazDesc";
@@ -9,9 +9,11 @@ const ENTRY_PASSWORD: &str = "kdbxrs";
 const DATABASE_PASSWORD: &str = "blahblahblah";
 const DATABASE_KEY_FILE: [u8; 3] = [0x20, 0x40, 0x60];
 
-
 fn key() -> CompositeKey {
-    CompositeKey::new(Some(DATABASE_PASSWORD.into()), Some(DATABASE_KEY_FILE.as_ref().to_vec()))
+    CompositeKey::new(
+        Some(DATABASE_PASSWORD.into()),
+        Some(DATABASE_KEY_FILE.as_ref().to_vec()),
+    )
 }
 
 #[test]

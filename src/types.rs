@@ -1,6 +1,6 @@
 //! Keepass data types
 
-use chrono::{NaiveDateTime,Timelike};
+use chrono::{NaiveDateTime, Timelike};
 use uuid::Uuid;
 
 /// A value for a `Field` stored in an `Entry`
@@ -60,15 +60,12 @@ impl Entry {
 
     /// Find a field in this entry with a given key
     pub fn find(&self, key: &str) -> Option<&Field> {
-        self.fields.iter()
-            .find(|i| i.key.as_str() == key)
-
+        self.fields.iter().find(|i| i.key.as_str() == key)
     }
 
     /// Find a field in this entry with a given key
     pub fn find_mut(&mut self, key: &str) -> Option<&mut Field> {
-        self.fields.iter_mut()
-            .find(|i| i.key.as_str() == key)
+        self.fields.iter_mut().find(|i| i.key.as_str() == key)
     }
 
     fn find_string_value(&self, key: &str) -> Option<&str> {
@@ -89,7 +86,7 @@ impl Entry {
         let title = title.to_string();
         match self.find_mut("Title") {
             Some(f) => f.value = Value::Standard(title),
-            None => self.fields.push(Field::new("Title", &title))
+            None => self.fields.push(Field::new("Title", &title)),
         }
     }
 
@@ -103,7 +100,7 @@ impl Entry {
         let username = username.to_string();
         match self.find_mut("UserName") {
             Some(f) => f.value = Value::Standard(username),
-            None => self.fields.push(Field::new("UserName", &username))
+            None => self.fields.push(Field::new("UserName", &username)),
         }
     }
 
@@ -117,7 +114,7 @@ impl Entry {
         let url = url.to_string();
         match self.find_mut("URL") {
             Some(f) => f.value = Value::Standard(url),
-            None => self.fields.push(Field::new("URL", &url))
+            None => self.fields.push(Field::new("URL", &url)),
         }
     }
 
@@ -131,7 +128,7 @@ impl Entry {
         let password = password.to_string();
         match self.find_mut("Password") {
             Some(f) => f.value = Value::Standard(password),
-            None => self.fields.push(Field::new("Password", &password))
+            None => self.fields.push(Field::new("Password", &password)),
         }
     }
 }
@@ -232,7 +229,10 @@ pub struct Times {
 
 impl Default for Times {
     fn default() -> Times {
-        let now = chrono::Local::now().naive_local().with_nanosecond(0).unwrap();
+        let now = chrono::Local::now()
+            .naive_local()
+            .with_nanosecond(0)
+            .unwrap();
         Times {
             expires: false,
             usage_count: 0,

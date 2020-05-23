@@ -106,7 +106,8 @@ where
 }
 
 impl<'a, W: Write> HmacWriter<'a, W>
-    where W: Write
+where
+    W: Write,
 {
     pub(crate) fn finish(mut self) -> io::Result<W> {
         if self.buffer.len() > 0 {

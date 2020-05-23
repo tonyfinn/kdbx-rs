@@ -24,12 +24,12 @@
 //! # Ok(())
 //! # }
 //! ```
-//! 
+//!
 //! # Generating a new password database
 //!
 //! A database can be created in memory by using the [`Database::default()`]
 //! method. This will create an empty database which you can then populate.
-//! 
+//!
 //! ```
 //! use kdbx_rs::database::{Database, Entry};
 //!
@@ -44,7 +44,7 @@
 //!
 //! database.add_entry(entry);
 //! ```
-//! 
+//!
 //! # Saving a database to a file
 //!
 //! To save a database to a file, you first need to create
@@ -58,7 +58,7 @@
 //! Provide a [`CompositeKey`] instance, which can be created the same way as for
 //! unlocking database. This will then be used to generate the remaining keys
 //! allowing you to save the database using [`Kdbx.write()`]
-//! 
+//!
 //! ```rust
 //! use kdbx_rs::{CompositeKey, Kdbx};
 //! # use kdbx_rs::Database;

@@ -241,10 +241,7 @@ impl Kdbx<Locked> {
     /// Unlocks the kdbx file
     ///
     /// If unlock fails, returns the locked kdbx file along with the error
-    pub fn unlock(
-        self,
-        key: &crypto::CompositeKey,
-    ) -> Result<Kdbx<Unlocked>, FailedUnlock> {
+    pub fn unlock(self, key: &crypto::CompositeKey) -> Result<Kdbx<Unlocked>, FailedUnlock> {
         let composed_key = key.composed();
         let master_key = match composed_key.master_key(&self.state.header.kdf_params) {
             Ok(master_key) => master_key,

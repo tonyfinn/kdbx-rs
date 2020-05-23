@@ -1,6 +1,6 @@
 use super::errors::{self, HeaderError as Error};
-use super::variant_dict;
 use super::header_fields;
+use super::variant_dict;
 use crate::crypto;
 use crate::utils;
 use getrandom::getrandom;

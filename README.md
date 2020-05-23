@@ -58,7 +58,7 @@ kdbx.write(&mut file)?;
 | Argon 2 KDF      | Yes       | Yes          | Yes       | No          | Yes            |
 | AES Cipher       | Yes       | Yes          | Yes       | Yes         | Yes            |
 | TwoFish Cipher   | Yes       | Yes          | No        | Yes         | No             |
-| Chacha20 Cipher  | No        | Yes          | Yes       | No          | No             |
+| Chacha20 Cipher  | Yes       | Yes          | Yes       | No          | No             |
 | Salsa20 Cipher   | No        | Yes          | Yes       | Yes         | No             |
 | **Features**     |           |              |           |             |                |
 | Memory protection| No        | Yes          | No        | No          | Yes            |
