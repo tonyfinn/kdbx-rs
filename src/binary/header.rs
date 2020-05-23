@@ -1,6 +1,6 @@
 use super::errors::{self, HeaderError as Error};
 use super::variant_dict;
-use super::wrapper_fields;
+use super::header_fields;
 use crate::crypto;
 use crate::utils;
 use getrandom::getrandom;
@@ -200,9 +200,9 @@ where
 
 #[derive(Default)]
 pub struct KdbxHeaderBuilder {
-    pub cipher: Option<wrapper_fields::Cipher>,
-    pub kdf_params: Option<wrapper_fields::KdfParams>,
-    pub compression_type: Option<wrapper_fields::CompressionType>,
+    pub cipher: Option<header_fields::Cipher>,
+    pub kdf_params: Option<header_fields::KdfParams>,
+    pub compression_type: Option<header_fields::CompressionType>,
     pub other_headers: Vec<HeaderField<OuterHeaderId>>,
     pub master_seed: Option<Vec<u8>>,
     pub encryption_iv: Option<Vec<u8>>,
@@ -240,7 +240,7 @@ impl KdbxHeaderBuilder {
                     ));
                 }
                 self.compression_type =
-                    Some(wrapper_fields::CompressionType::from(u32::from_le_bytes([
+                    Some(header_fields::CompressionType::from(u32::from_le_bytes([
                         header.data[0],
                         header.data[1],
                         header.data[2],
@@ -285,11 +285,11 @@ impl KdbxHeaderBuilder {
 /// from the OS secure RNG
 pub struct KdbxHeader {
     /// Encryption cipher used for decryption the database
-    pub cipher: wrapper_fields::Cipher,
+    pub cipher: header_fields::Cipher,
     /// Options for converting credentials to crypto keys
-    pub kdf_params: wrapper_fields::KdfParams,
+    pub kdf_params: header_fields::KdfParams,
     /// Compression applied prior to encryption
-    pub compression_type: wrapper_fields::CompressionType,
+    pub compression_type: header_fields::CompressionType,
     /// Custom and unrecognized header types
     pub other_headers: Vec<HeaderField<OuterHeaderId>>,
     /// Master seed used to make crypto keys DB specific
@@ -318,8 +318,8 @@ impl KdbxHeader {
         getrandom(&mut encryption_iv)?;
         getrandom(&mut cipher_salt)?;
         Ok(KdbxHeader {
-            cipher: wrapper_fields::Cipher::Aes256,
-            kdf_params: wrapper_fields::KdfParams::Argon2 {
+            cipher: header_fields::Cipher::Aes256,
+            kdf_params: header_fields::KdfParams::Argon2 {
                 iterations: 10,
                 memory_bytes: 0xFFFF * 1024,
                 salt: cipher_salt,
@@ -387,7 +387,7 @@ impl KdbxHeader {
 
 #[derive(Default)]
 pub struct KdbxInnerHeaderBuilder {
-    pub inner_stream_cipher: Option<wrapper_fields::InnerStreamCipher>,
+    pub inner_stream_cipher: Option<header_fields::InnerStreamCipher>,
     pub inner_stream_key: Option<Vec<u8>>,
     /// Custom and unrecognized header types
     pub other_headers: Vec<HeaderField<InnerHeaderId>>,
@@ -425,7 +425,7 @@ impl KdbxInnerHeaderBuilder {
 #[derive(Debug, PartialEq, Eq)]
 pub struct KdbxInnerHeader {
     /// Cipher identifier for data encrypted in memory
-    pub inner_stream_cipher: wrapper_fields::InnerStreamCipher,
+    pub inner_stream_cipher: header_fields::InnerStreamCipher,
     /// Cipher key for data encrypted in memory
     pub inner_stream_key: Vec<u8>,
     /// Headers not handled by this library
@@ -441,7 +441,7 @@ impl KdbxInnerHeader {
     ///
     /// [`getrandom`]: https://docs.rs/getrandom/0.1/getrandom/index.html
     pub fn from_os_random() -> std::result::Result<KdbxInnerHeader, errors::DatabaseCreationError> {
-        let inner_stream_cipher = wrapper_fields::InnerStreamCipher::ChaCha20;
+        let inner_stream_cipher = header_fields::InnerStreamCipher::ChaCha20;
         let mut inner_stream_key = vec![0u8; 44]; // 32 bit key + 12 bit nonce for chacha20
         getrandom::getrandom(&mut inner_stream_key)?;
 

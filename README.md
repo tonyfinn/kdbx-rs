@@ -2,6 +2,47 @@
 
 Library for reading and writing KDBX libraries from Rust
 
+## Example code
+
+Obtaining the first password in the password database:
+
+```rust
+use kdbx_rs::{self, CompositeKey, Error};
+fn main() -> Result<(), Error> {
+    let file_path = "./res/kdbx4-argon2.kdbx";
+    let kdbx = kdbx_rs::open(file_path)?;
+    let key = CompositeKey::from_password("kdbxrs");
+    let unlocked = kdbx.unlock(&key)?;
+
+    println!(unlocked.root().entries[0].password())
+    Ok(())
+}
+```
+
+Generating a new password database:
+
+```rust
+let mut database = Database::default();
+database.set_name("My First Database");
+database.set_description("Created with kdbx-rs");
+
+let mut entry = Entry::default();
+entry.set_password("password1");
+entry.set_url("https://example.com");
+entry.set_username("User123");
+
+database.add_entry(Entry);
+```
+
+Saving a database to a file
+
+```rust
+let kdbx = Kdbx::from_database(database)?;
+kdbx.set_key(CompositeKey::from_password("foo123"))?;
+
+let mut file = File::create("/tmp/kdbx-rs-example.kdbx")?;
+kdbx.write(&mut file)?;
+```
 
 ## Comparison of Rust Keepass Libraries (as of May 2020)
 

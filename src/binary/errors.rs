@@ -1,5 +1,5 @@
 use super::header;
-use super::wrapper_fields;
+use super::header_fields;
 use crate::crypto;
 use thiserror::Error;
 
@@ -60,7 +60,7 @@ pub enum HeaderError {
     MissingRequiredInnerField(header::InnerHeaderId),
     /// A parameter for the KDF algorithm is missing
     #[error("Incompatible database - Missing paramater {0:?} for KDF {1:?}")]
-    MissingKdfParam(String, wrapper_fields::KdfAlgorithm),
+    MissingKdfParam(String, header_fields::KdfAlgorithm),
     /// Validating the header against the unencrypted sha256 hash failed
     #[error("Corrupt database - Header Checksum failed")]
     ChecksumFailed,

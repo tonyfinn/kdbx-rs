@@ -1,5 +1,5 @@
 use kdbx_rs::{self, Kdbx, CompositeKey};
-use kdbx_rs::types::{Entry, Field, Group};
+use kdbx_rs::database::{Entry, Field, Group};
 
 const DATABASE_NAME: &str = "BarName";
 const DATABASE_DESC: &str = "BazDesc";

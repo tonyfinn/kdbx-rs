@@ -2,7 +2,7 @@
 //!
 //! Primarily for verifying kdbx-rs changes
 
-use kdbx_rs::types::{Entry, Field, Group, Times};
+use kdbx_rs::database::{Entry, Field, Group, Times};
 use kdbx_rs::{CompositeKey, Database, Error, Kdbx};
 
 use chrono::NaiveDate;

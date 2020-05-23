@@ -3,7 +3,7 @@
 use chrono::{NaiveDateTime,Timelike};
 use uuid::Uuid;
 
-/// A value for a entry's field
+/// A value for a `Field` stored in an `Entry`
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub enum Value {
     /// A value using in-memory encryption
@@ -59,34 +59,80 @@ impl Entry {
     }
 
     /// Find a field in this entry with a given key
-    pub fn find_entry(&self, key: &str) -> Option<&str> {
+    pub fn find(&self, key: &str) -> Option<&Field> {
         self.fields.iter()
             .find(|i| i.key.as_str() == key)
-            .and_then(|f| match &f.value {
-                Value::Empty => None,
-                Value::Standard(s) => Some(s.as_ref()),
-                Value::Protected(p) => Some(p.as_ref()),
-            })
+
+    }
+
+    /// Find a field in this entry with a given key
+    pub fn find_mut(&mut self, key: &str) -> Option<&mut Field> {
+        self.fields.iter_mut()
+            .find(|i| i.key.as_str() == key)
+    }
+
+    fn find_string_value(&self, key: &str) -> Option<&str> {
+        self.find(key).and_then(|f| match &f.value {
+            Value::Empty => None,
+            Value::Standard(s) => Some(s.as_ref()),
+            Value::Protected(p) => Some(p.as_ref()),
+        })
     }
 
     /// Return the title of this item
     pub fn title(&self) -> Option<&str> {
-        self.find_entry("Title")
+        self.find_string_value("Title")
+    }
+
+    /// Set the title of this entry
+    pub fn set_title<S: ToString>(&mut self, title: S) {
+        let title = title.to_string();
+        match self.find_mut("Title") {
+            Some(f) => f.value = Value::Standard(title),
+            None => self.fields.push(Field::new("Title", &title))
+        }
     }
 
     /// Return the username of this item
     pub fn username(&self) -> Option<&str> {
-        self.find_entry("UserName")
+        self.find_string_value("UserName")
+    }
+
+    /// Set the username of this entry
+    pub fn set_username<S: ToString>(&mut self, username: S) {
+        let username = username.to_string();
+        match self.find_mut("UserName") {
+            Some(f) => f.value = Value::Standard(username),
+            None => self.fields.push(Field::new("UserName", &username))
+        }
     }
 
     /// Return the URL of this item
     pub fn url(&self) -> Option<&str> {
-        self.find_entry("URL")
+        self.find_string_value("URL")
+    }
+
+    /// Set the URL of this entry
+    pub fn set_url<S: ToString>(&mut self, url: S) {
+        let url = url.to_string();
+        match self.find_mut("URL") {
+            Some(f) => f.value = Value::Standard(url),
+            None => self.fields.push(Field::new("URL", &url))
+        }
     }
 
     /// Return the password of this item
     pub fn password(&self) -> Option<&str> {
-        self.find_entry("Password")
+        self.find_string_value("Password")
+    }
+
+    /// Set the password of this entry
+    pub fn set_password<S: ToString>(&mut self, password: S) {
+        let password = password.to_string();
+        match self.find_mut("Password") {
+            Some(f) => f.value = Value::Standard(password),
+            None => self.fields.push(Field::new("Password", &password))
+        }
     }
 }
 
@@ -217,6 +263,36 @@ impl Database {
     /// Mutable meta information about the database like name and access times
     pub fn meta_mut(&mut self) -> &mut Meta {
         &mut self.meta
+    }
+
+    /// Get the database name
+    pub fn name(&self) -> &str {
+        &self.meta.database_name
+    }
+
+    /// Set the database name
+    pub fn set_name<S: ToString>(&mut self, name: S) {
+        self.meta.database_name = name.to_string();
+    }
+
+    /// Get the database description
+    pub fn description(&self) -> &str {
+        &self.meta.database_description
+    }
+
+    /// Set the database name
+    pub fn set_description<S: ToString>(&mut self, desc: S) {
+        self.meta.database_description = desc.to_string();
+    }
+
+    /// Add a entry to the root group
+    ///
+    /// Creates a root group if none exist
+    pub fn add_entry(&mut self, entry: Entry) {
+        if self.groups.len() == 0 {
+            self.groups.push(Group::default());
+        }
+        self.groups[0].entries.push(entry);
     }
 
     /// Top level group for database entries

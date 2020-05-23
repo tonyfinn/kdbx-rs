@@ -1,5 +1,5 @@
 use kdbx_rs;
-use kdbx_rs::types::{Entry, Field, Group, Times};
+use kdbx_rs::database::{Entry, Group, Times};
 
 use chrono::NaiveDate;
 use std::fs::read_to_string;
@@ -29,15 +29,15 @@ fn generate_xml() -> Result<(), kdbx_rs::Error> {
     let expected_xml_string = read_to_string(expected_path).unwrap().replace("\r\n", "\n");
 
     let mut db = kdbx_rs::Database::default();
-    db.meta.database_name = "BarName".to_string();
-    db.meta.database_description = "BazDesc".to_string();
+    db.set_name("BarName");
+    db.set_description("BazDesc");
     let mut group = Group::default();
     group.name = "FooGroup".to_string();
     group.uuid = Uuid::from_u128(0x12345678);
     group.times = sample_times();
     let mut entry = Entry::default();
-    entry.add_field(Field::new("Title", "Bar"));
-    entry.add_field(Field::new("Password", "kdbxrs"));
+    entry.set_title("Bar");
+    entry.set_password("kdbxrs");
     entry.uuid = Uuid::from_u128(0x654321);
     entry.times = sample_times();
     group.entries.push(entry);
