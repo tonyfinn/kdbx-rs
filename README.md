@@ -82,7 +82,7 @@ This crate is licensed under GPLv3.0 or later, see [`LICENSE.txt`][license] for 
 [docs]: https://docs.rs/kdbx-rs/
 [package]: https://crates.io/crates/kdbx-rs
 [repo]: https://gitlab.com/tonyfinn/kdbx-rs
-[license]: https://gitlab.com/tonyfinn/kdbx-rs/LICENSE.txt
+[license]: https://gitlab.com/tonyfinn/kdbx-rs/-/blob/master/LICENSE.txt
 [`kdbx-rs`]: https://gitlab.com/tonyfinn/kdbx-rs
 [`kdbx4`]: https://github.com/makovich/kdbx4
 [`rust-kpdb`]: https://github.com/sru-systems/rust-kpdb
