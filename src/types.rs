@@ -1,6 +1,7 @@
 //! Keepass data types
 
 use chrono::{NaiveDateTime, Timelike};
+use std::borrow::Cow;
 use uuid::Uuid;
 
 /// A value for a `Field` stored in an `Entry`
@@ -115,6 +116,22 @@ impl Entry {
         match self.find_mut("URL") {
             Some(f) => f.value = Value::Standard(url),
             None => self.fields.push(Field::new("URL", &url)),
+        }
+    }
+
+    /// Return the TOTP of this item, as stored by KeepassXC
+    pub fn otp(&self) -> Option<Otp> {
+        self.find_string_value("otp")
+            .map(|url| Otp {
+                url: Cow::Borrowed(url)
+            })
+    }
+
+    /// Return the TOTP of this item, as stored by KeepassXC
+    pub fn set_otp(&mut self, otp: Otp) {
+        match self.find_mut("otp") {
+            Some(f) => f.value = Value::Standard(otp.url.to_string()),
+            None => self.fields.push(Field::new("otp", otp.url.as_ref())),
         }
     }
 
@@ -246,7 +263,22 @@ impl Default for Times {
 }
 
 #[derive(Debug, Default, Clone, PartialEq, Eq)]
-/// Decrypted database structure
+/// Decrypted password database
+///
+/// A database is made up of two primary parts, a set of meta
+/// information about the database itself, like the name or description
+/// and a tree structure of groups and database entries. Groups can also
+/// be nested within other groups.
+///
+/// ## Meta information
+///
+/// You can access the entire [`Meta`] struct using [`Database::meta()`].
+/// For the most common information the following shortcut methods are provided:
+///
+/// * [`Database::name`] / [`Database::set_name`]
+/// * [`Database::description`] / [`Database::set_description`]
+///
+/// ## Database entries
 pub struct Database {
     /// Meta information about this database
     pub meta: Meta,
@@ -289,7 +321,7 @@ impl Database {
     ///
     /// Creates a root group if none exist
     pub fn add_entry(&mut self, entry: Entry) {
-        if self.groups.len() == 0 {
+        if self.groups.is_empty() {
             self.groups.push(Group::default());
         }
         self.groups[0].entries.push(entry);
@@ -303,5 +335,54 @@ impl Database {
     /// Mutable top level group for database entries
     pub fn root_mut(&mut self) -> Option<&mut Group> {
         self.groups.get_mut(0)
+    }
+}
+
+/// TOTP one time password secret in KeepassXC format
+pub struct Otp<'a> {
+    url: Cow<'a, str>,
+}
+
+impl<'a> Otp<'a> {
+
+    /// Create a new OTP password from the given details
+    pub fn new<S: ToString>(secret: S, period: u32, digits: u32) -> Otp<'static> {
+        let url = format!("otpauth://totp/kdbxrs:kdbxrs?secret={}&period={}&digits={}", secret.to_string(), period, digits);
+        Otp {
+            url: Cow::Owned(url)
+        }
+    }
+
+    fn find_url_param(&self, key: &str) -> Option<&str> {
+        let mut parts = self.url.split("?");
+        let _path = parts.next()?;
+        let params = parts.next()?;
+        let params = params.split("&");
+
+        for param in params {
+            let mut param_parts = param.split("=");
+            let pkey = param_parts.next()?;
+            if pkey == key {
+                return param_parts.next()
+            }
+        }
+        None
+    }
+
+    /// Retrieve the secret used to generate one time passwords
+    pub fn secret(&self) -> Option<&str> {
+        self.find_url_param("secret")
+    }
+
+    /// Return the period for which passwords are valid
+    pub fn period(&self) -> Option<u32> {
+        self.find_url_param("secret")
+            .and_then(|p| p.parse().ok())
+    }
+
+    /// Return the number of digits in the resulting code
+    pub fn digits(&self) -> Option<u32> {
+        self.find_url_param("digits")
+            .and_then(|p| p.parse().ok())
     }
 }

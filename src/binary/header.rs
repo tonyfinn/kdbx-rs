@@ -93,7 +93,7 @@ impl Into<u8> for OuterHeaderId {
 
 impl HeaderId for OuterHeaderId {
     fn is_final(&self) -> bool {
-        return *self == OuterHeaderId::EndOfHeader;
+        *self == OuterHeaderId::EndOfHeader
     }
 }
 
@@ -138,7 +138,7 @@ impl Into<u8> for InnerHeaderId {
 
 impl HeaderId for InnerHeaderId {
     fn is_final(&self) -> bool {
-        return *self == InnerHeaderId::EndOfHeader;
+        *self == InnerHeaderId::EndOfHeader
     }
 }
 

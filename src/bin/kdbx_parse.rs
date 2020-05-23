@@ -3,11 +3,9 @@
 //!
 //! Primarily for verifying kdbx-rs changes
 
-use kdbx_rs;
-
 fn main() -> Result<(), kdbx_rs::Error> {
     let args: Vec<String> = std::env::args().collect();
-    if args.len() < 1 {
+    if args.is_empty() {
         println!("Usage: kdbx-decrypt <path to kdbx file> <password>");
     }
     let kdbx = kdbx_rs::open(&args[1])?;

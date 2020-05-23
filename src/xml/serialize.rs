@@ -17,10 +17,7 @@ type Result<T> = std::result::Result<T, Error>;
 
 fn write_bool_tag<W: Write>(writer: &mut XmlWriter<W>, name: &str, value: bool) -> Result<()> {
     writer.write(XmlEvent::start_element(name))?;
-    writer.write(XmlEvent::characters(match value {
-        true => "True",
-        false => "False",
-    }))?;
+    writer.write(XmlEvent::characters(if value { "True" } else { "False" }))?;
     writer.write(XmlEvent::end_element())?;
     Ok(())
 }
@@ -116,7 +113,7 @@ fn write_entry<W: Write>(writer: &mut XmlWriter<W>, entry: &Entry) -> Result<()>
     for field in &entry.fields {
         write_field(writer, "String", field)?;
     }
-    if entry.history.len() > 0 {
+    if !entry.history.is_empty() {
         writer.write(XmlEvent::start_element("History"))?;
         for old_entry in &entry.history {
             write_entry(writer, old_entry)?;

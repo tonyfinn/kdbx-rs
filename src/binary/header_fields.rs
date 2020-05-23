@@ -5,8 +5,8 @@ use crate::utils;
 use std::convert::{TryFrom, TryInto};
 use uuid::Uuid;
 
-pub const KEEPASS_MAGIC_NUMBER: u32 = 0x9AA2D903;
-pub const KDBX_MAGIC_NUMBER: u32 = 0xB54BFB67;
+pub const KEEPASS_MAGIC_NUMBER: u32 = 0x9AA2_D903;
+pub const KDBX_MAGIC_NUMBER: u32 = 0xB54B_FB67;
 
 const AES128_UUID: &str = "61ab05a1-9464-41c3-8d74-3a563df8dd35";
 const AES256_UUID: &str = "31c1f2e6-bf71-4350-be58-05216afc5aff";

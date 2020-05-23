@@ -118,8 +118,8 @@ fn parse_field<R: Read, S: StreamCipher + ?Sized>(
                                 let to_str = String::from_utf8(decoded)
                                     .map_err(|_| Error::DecryptFailed(key_clone))?;
                                 Value::Protected(to_str)
-                            },
-                            Err(_) => return Err(Error::DecryptFailed(key_clone))
+                            }
+                            Err(_) => return Err(Error::DecryptFailed(key_clone)),
                         }
                     } else {
                         Value::Standard(contents)
@@ -128,7 +128,7 @@ fn parse_field<R: Read, S: StreamCipher + ?Sized>(
                     Value::Empty
                 }
             }
-            XmlEvent::EndElement { name, .. } if &name.local_name == tag_name => break,
+            XmlEvent::EndElement { name, .. } if name.local_name == tag_name => break,
             _ => {}
         }
     }
@@ -226,7 +226,7 @@ fn parse_group<R: Read, S: StreamCipher + ?Sized>(
                 } else if &name.local_name == "UUID" {
                     group.uuid = parse_uuid(xml_event_reader)?;
                 } else if &name.local_name == "Name" {
-                    group.name = parse_string(xml_event_reader)?.unwrap_or("".to_string());
+                    group.name = parse_string(xml_event_reader)?.unwrap_or_else(String::new);
                 } else if &name.local_name == "Times" {
                     group.times = parse_times(xml_event_reader)?;
                 }
@@ -262,12 +262,9 @@ fn parse_custom_data<R: Read, S: StreamCipher + ?Sized>(
     let mut fields = Vec::new();
     loop {
         match xml_event_reader.next()? {
-            XmlEvent::StartElement { name, .. } => match name.local_name.as_ref() {
-                "Item" => {
-                    fields.push(parse_field(xml_event_reader, "Item", stream_cipher)?);
-                }
-                _ => {}
-            },
+            XmlEvent::StartElement { name, .. } if &name.local_name == "Item" => {
+                fields.push(parse_field(xml_event_reader, "Item", stream_cipher)?);
+            }
             XmlEvent::EndElement { name, .. } if &name.local_name == "CustomData" => break,
             _ => {}
         }
@@ -359,7 +356,10 @@ fn parse_file<R: Read, S: StreamCipher + ?Sized>(
 }
 
 /// Parse decrypted XML into a database
-pub fn parse_xml<R: Read, S: StreamCipher + ?Sized>(xml_data: R, stream_cipher: &mut S) -> Result<Database> {
+pub fn parse_xml<R: Read, S: StreamCipher + ?Sized>(
+    xml_data: R,
+    stream_cipher: &mut S,
+) -> Result<Database> {
     let xml_config = xml::ParserConfig::new()
         .trim_whitespace(true)
         .cdata_to_characters(true);

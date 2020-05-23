@@ -2,8 +2,6 @@
 //!
 //! Primarily for investigating the kdbx format.
 
-use kdbx_rs;
-
 fn print_kdf(params: &kdbx_rs::binary::KdfParams) {
     use kdbx_rs::binary::KdfParams as p;
     match params {
@@ -39,7 +37,7 @@ fn print_kdf(params: &kdbx_rs::binary::KdfParams) {
 
 fn main() -> Result<(), kdbx_rs::Error> {
     let args: Vec<String> = std::env::args().collect();
-    if args.len() < 1 {
+    if args.is_empty() {
         println!("Usage: kdbx-dump-header <path to kdbx file>");
     }
     let kdbx = kdbx_rs::open(&args[1])?;

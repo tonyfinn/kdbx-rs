@@ -50,7 +50,7 @@ pub fn from_reader<R: Read>(mut input: R) -> Result<Kdbx<Locked>, errors::OpenEr
         encrypted_data,
     };
 
-    Ok(Kdbx { state: state })
+    Ok(Kdbx { state })
 }
 
 /// Read a database from a given path

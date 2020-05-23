@@ -5,14 +5,22 @@ use std::ops::{Deref, DerefMut};
 
 pub trait KdbxState: std::fmt::Debug {
     fn header(&self) -> &header::KdbxHeader;
+    fn header_mut(&mut self) -> &mut header::KdbxHeader;
     fn write<W: Write>(&self, output: W) -> Result<(), errors::WriteError>;
 }
 
 #[derive(Debug)]
-/// A kdbx file
+/// A KeePass 2 archive wrapping a password database
 ///
-/// Most methods are available on a specific state
-/// like Kdbx<Locked> or Kdbx<Unlocked>
+/// Most methods are available on a specific state like `Kdbx<Locked>`
+/// or `Kdbx<Unlocked>`.
+///
+/// A keepass 2 archive can be obtained in one of two ways. You may read
+/// an existing archive using [`kdbx_rs::open`][crate::open] or 
+/// [`kdbx_rs::from_reader`][crate::from_reader].
+///
+/// You can also create a password database using [`Database`][crate::Database],
+/// then turn it into a KeePass 2 archive using [`Kdbx::from_database`].
 pub struct Kdbx<S>
 where
     S: KdbxState,
@@ -21,12 +29,17 @@ where
 }
 
 impl<T: KdbxState> Kdbx<T> {
-    /// Unencrypted database configuration and custom data
+    /// Encryption configuration and unencrypted custom data
     pub fn header(&self) -> &header::KdbxHeader {
-        &self.state.header()
+        self.state.header()
     }
 
-    /// Write this database to the given output stream
+    /// Mutable encryption configuration and unencrypted custom data
+    pub fn header_mut(&mut self) -> &mut header::KdbxHeader {
+        self.state.header_mut()
+    }
+
+    /// Write this archive to the given output stream
     pub fn write<W: Write>(&self, output: W) -> Result<(), errors::WriteError> {
         self.state.write(output)?;
         Ok(())
@@ -34,7 +47,14 @@ impl<T: KdbxState> Kdbx<T> {
 }
 
 /// Represents a failed attempt at unlocking a database
-/// Includes the locked database and the reason the unlockfailed.
+///
+/// Includes the locked database and the reason the unlock failed.
+/// This allows you to keep the database for interactive user and
+/// e.g. promt the user for a new password if the error is key related
+///
+/// However, for unscripted use, `FailedUnlock` implements
+/// `Into<[kdbx_rs::Error]>` and `Into<[kdbx_rs::errors::UnlockError]>`
+/// for easy use with the `?` operatior.
 pub struct FailedUnlock(pub Kdbx<Locked>, pub errors::UnlockError);
 
 impl From<FailedUnlock> for errors::UnlockError {
@@ -89,6 +109,10 @@ impl KdbxState for Unlocked {
         &self.header
     }
 
+    fn header_mut(&mut self) -> &mut header::KdbxHeader {
+        &mut self.header
+    }
+
     fn write<W: Write>(&self, mut output: W) -> Result<(), errors::WriteError> {
         let master_key = self
             .master_key
@@ -120,6 +144,11 @@ impl Kdbx<Unlocked> {
         &self.state.inner_header
     }
 
+    /// Mutable encrypted binaries and database options
+    pub fn inner_header_mut(&mut self) -> &mut header::KdbxInnerHeader {
+        &mut self.state.inner_header
+    }
+
     /// Use the given composite key to encrypt the database
     pub fn set_key(
         &mut self,
@@ -142,6 +171,11 @@ impl Kdbx<Unlocked> {
     /// Password database stored in this kdbx archive
     pub fn database(&self) -> &crate::Database {
         &self.state.database
+    }
+
+    /// Mutable password database stored in this kdbx archive
+    pub fn database_mut(&mut self) -> &mut crate::Database {
+        &mut self.state.database
     }
 
     /// Generate a new .kdbx from the given database
@@ -204,6 +238,10 @@ pub struct Locked {
 impl KdbxState for Locked {
     fn header(&self) -> &header::KdbxHeader {
         &self.header
+    }
+
+    fn header_mut(&mut self) -> &mut header::KdbxHeader {
+        &mut self.header
     }
 
     fn write<W: Write>(&self, mut output: W) -> Result<(), errors::WriteError> {
@@ -270,8 +308,8 @@ impl Kdbx<Locked> {
             match parsed {
                 Ok((inner_header, data, db)) => Ok(Kdbx {
                     state: Unlocked {
+                        inner_header,
                         header: self.state.header,
-                        inner_header: inner_header,
                         major_version: self.state.major_version,
                         minor_version: self.state.minor_version,
                         composed_key: Some(composed_key),

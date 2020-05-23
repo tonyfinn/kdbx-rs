@@ -16,10 +16,7 @@ where
     R: Read,
 {
     pub(crate) fn new(inner: R, cipher: C) -> StreamCipherReader<C, R> {
-        StreamCipherReader {
-            inner: inner,
-            cipher,
-        }
+        StreamCipherReader { inner, cipher }
     }
 }
 

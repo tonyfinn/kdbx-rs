@@ -12,11 +12,11 @@ use uuid::Uuid;
 
 fn sample_times() -> Times {
     Times {
-        last_access_time: NaiveDate::from_ymd(2020, 05, 01).and_hms(1, 2, 3),
-        last_modification_time: NaiveDate::from_ymd(2020, 04, 01).and_hms(1, 2, 3),
-        creation_time: NaiveDate::from_ymd(2020, 04, 01).and_hms(1, 1, 3),
-        location_changed: NaiveDate::from_ymd(2020, 04, 01).and_hms(1, 1, 3),
-        expiry_time: NaiveDate::from_ymd(2020, 04, 01).and_hms(1, 1, 3),
+        last_access_time: NaiveDate::from_ymd(2020, 5, 1).and_hms(1, 2, 3),
+        last_modification_time: NaiveDate::from_ymd(2020, 4, 1).and_hms(1, 2, 3),
+        creation_time: NaiveDate::from_ymd(2020, 4, 1).and_hms(1, 1, 3),
+        location_changed: NaiveDate::from_ymd(2020, 4, 1).and_hms(1, 1, 3),
+        expiry_time: NaiveDate::from_ymd(2020, 4, 1).and_hms(1, 1, 3),
         expires: false,
         usage_count: 1,
     }
@@ -34,12 +34,12 @@ fn main() -> Result<(), Error> {
     db.meta.database_description = "BazDesc".to_string();
     let mut group = Group::default();
     group.name = "Root".to_string();
-    group.uuid = Uuid::from_u128(0x12345678);
+    group.uuid = Uuid::from_u128(0x1234_5678);
     group.times = sample_times();
     let mut entry = Entry::default();
     entry.add_field(Field::new("Title", "Bar"));
     entry.add_field(Field::new("Password", "kdbxrs"));
-    entry.uuid = Uuid::from_u128(0x654321);
+    entry.uuid = Uuid::from_u128(0x0065_4321);
     entry.times = sample_times();
     group.entries.push(entry);
     db.groups.push(group);

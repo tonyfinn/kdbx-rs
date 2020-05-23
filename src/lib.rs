@@ -10,7 +10,7 @@
 //! # Opening a database
 //!
 //! Databases can be read with the [`kdbx_rs::open`] function. This provides
-//! access to heder information. It can then be unlocked by providing a [`CompositeKey`]
+//! access to header information. It can then be unlocked by providing a [`CompositeKey`]
 //! to the [`Kdbx.unlock`] method to access any encrypted data.
 //!
 //! ```
