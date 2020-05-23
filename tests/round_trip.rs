@@ -30,7 +30,7 @@ fn round_trip() -> Result<(), kdbx_rs::Error> {
     let entry_times = entry.times.clone();
     group.entries.push(entry);
     db.groups.push(group);
-    let mut kdbx = Kdbx::from_database(db)?;
+    let mut kdbx = Kdbx::from_database(db);
 
     let mut output_buf = Vec::new();
     kdbx.set_key(key())?;

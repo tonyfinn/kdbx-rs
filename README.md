@@ -1,6 +1,8 @@
 # KDBX-rs
 
-Library for reading and writing KDBX libraries from Rust
+[Documentation][docs] | [Repository][repo] | [crates.io][package]
+
+Library for reading and writing KDBX libraries from Rust. 
 
 ## Example code
 
@@ -37,7 +39,7 @@ database.add_entry(Entry);
 Saving a database to a file
 
 ```rust
-let kdbx = Kdbx::from_database(database)?;
+let kdbx = Kdbx::from_database(database);
 kdbx.set_key(CompositeKey::from_password("foo123"))?;
 
 let mut file = File::create("/tmp/kdbx-rs-example.kdbx")?;
@@ -69,6 +71,14 @@ kdbx.write(&mut file)?;
 | Entry History    | Yes       | No           | Yes       | Yes         | No             |
 
 
+## License
+
+This crate is licensed under GPLv3.0 or later, see [`LICENSE.txt`][license] for details.
+
+[docs]: https://docs.rs/kdbx-rs/
+[package]: https://crates.io/crates/kdbx-rs
+[repo]: https://gitlab.com/tonyfinn/kdbx-rs
+[license]: https://gitlab.com/tonyfinn/kdbx-rs/LICENSE.txt
 [`kdbx-rs`]: https://gitlab.com/tonyfinn/kdbx-rs
 [`kdbx4`]: https://github.com/makovich/kdbx4
 [`rust-kpdb`]: https://github.com/sru-systems/rust-kpdb

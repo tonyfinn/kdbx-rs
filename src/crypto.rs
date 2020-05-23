@@ -13,8 +13,14 @@ type HmacSha256 = Hmac<Sha256>;
 /// of password, keyfile or both.
 ///
 /// For the compmon case of creating credentials from just a password,
-/// you can use `CompositeKey::from_password("abcdef")`. Otherwise,
-/// you can use `CompositeKey::new(Some(pw), Some(keyfile))` to provide both.
+/// you can use 
+///
+/// ```
+/// # use kdbx_rs::CompositeKey;
+/// CompositeKey::from_password("abcdef"); 
+/// ```
+///
+/// Otherwise you can use [`CompositeKey::new`] to provide other combinations
 pub struct CompositeKey {
     pw: Option<String>,
     keyfile: Option<Vec<u8>>,

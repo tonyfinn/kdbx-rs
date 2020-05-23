@@ -141,16 +141,18 @@ impl Kdbx<Unlocked> {
 
     /// Generate a new .kdbx from the given database
     ///
-    /// Uses OS randomness provided by [`getrandom`] to generate all required seed
-    /// and IVs.
+    /// Uses OS randomness provided by the `rand` crates's [`OsRng`] to 
+    /// generate all required seeds and IVs.
     ///
     /// Note that you need to set a key with [`Kdbx::set_key`]
     /// to be able to write the database
+    ///
+    /// [`OsRng`]: https://docs.rs/rand/0.7/rand/rngs/struct.OsRng.html
     pub fn from_database(
         database: crate::Database,
-    ) -> Result<Kdbx<Unlocked>, errors::DatabaseCreationError> {
-        let header = header::KdbxHeader::from_os_random()?;
-        let inner_header = header::KdbxInnerHeader::from_os_random()?;
+    ) -> Kdbx<Unlocked> {
+        let header = header::KdbxHeader::from_os_random();
+        let inner_header = header::KdbxInnerHeader::from_os_random();
         let unlocked = Unlocked {
             header,
             inner_header,
@@ -161,7 +163,7 @@ impl Kdbx<Unlocked> {
             master_key: None,
             database,
         };
-        Ok(Kdbx { state: unlocked })
+        Kdbx { state: unlocked }
     }
 }
 

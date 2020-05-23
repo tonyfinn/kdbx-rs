@@ -1,9 +1,9 @@
-use super::errors::{self, HeaderError as Error};
+use super::errors::{HeaderError as Error};
 use super::header_fields;
 use super::variant_dict;
 use crate::crypto;
 use crate::utils;
-use getrandom::getrandom;
+use rand::{RngCore, rngs::OsRng};
 use sha2::{Digest, Sha256};
 use std::convert::TryInto;
 use std::io::{Read, Write};
@@ -301,7 +301,7 @@ pub struct KdbxHeader {
 impl KdbxHeader {
     /// Create a new header to encrypt a database with keys from the OS Secure RNG.
     ///
-    /// Under the hood this uses the [`getrandom`] crate to access the OS RNG,
+    /// Under the hood this uses the [`rand`] crate to access the [`OsRng`],
     /// the actual mechanism used to get random numbers is detailed in that
     /// crate's documentation.
     ///
@@ -309,15 +309,16 @@ impl KdbxHeader {
     /// and Argon2d v19 with 64 MiB memory factor, and 10 iterations as the KDF.
     /// This is subject to change in future crate versions
     ///
-    /// [`getrandom`]: https://docs.rs/getrandom/0.1/getrandom/index.html
-    pub fn from_os_random() -> std::result::Result<KdbxHeader, getrandom::Error> {
+    /// [`rand`]: https://docs.rs/rand/
+    /// [`OsRng`]: https://docs.rs/rand/0.7/rand/rngs/struct.OsRng.html
+    pub fn from_os_random() -> KdbxHeader {
         let mut master_seed = vec![0u8; 32];
         let mut encryption_iv = vec![0u8; 16];
         let mut cipher_salt = vec![0u8; 32];
-        getrandom(&mut master_seed)?;
-        getrandom(&mut encryption_iv)?;
-        getrandom(&mut cipher_salt)?;
-        Ok(KdbxHeader {
+        OsRng.fill_bytes(&mut master_seed);
+        OsRng.fill_bytes(&mut encryption_iv);
+        OsRng.fill_bytes(&mut cipher_salt);
+        KdbxHeader {
             cipher: header_fields::Cipher::Aes256,
             kdf_params: header_fields::KdfParams::Argon2 {
                 iterations: 10,
@@ -330,7 +331,7 @@ impl KdbxHeader {
             compression_type: super::CompressionType::None,
             master_seed,
             encryption_iv,
-        })
+        }
     }
 
     pub(crate) fn read<R: Read>(
@@ -437,19 +438,22 @@ impl KdbxInnerHeader {
     ///
     /// Currently the default stream cipher is ChaCha20
     ///
-    /// See the [`getrandom`] crate doc for details on random number sources
+    /// Under the hood this uses the [`rand`] crate to access the [`OsRng`],
+    /// the actual mechanism used to get random numbers is detailed in that
+    /// crate's documentation.
     ///
-    /// [`getrandom`]: https://docs.rs/getrandom/0.1/getrandom/index.html
-    pub fn from_os_random() -> std::result::Result<KdbxInnerHeader, errors::DatabaseCreationError> {
+    /// [`rand`]: https://docs.rs/rand/
+    /// [`OsRng`]: https://docs.rs/rand/0.7/rand/rngs/struct.OsRng.html
+    pub fn from_os_random() -> KdbxInnerHeader {
         let inner_stream_cipher = header_fields::InnerStreamCipher::ChaCha20;
         let mut inner_stream_key = vec![0u8; 44]; // 32 bit key + 12 bit nonce for chacha20
-        getrandom::getrandom(&mut inner_stream_key)?;
+        OsRng.fill_bytes(&mut inner_stream_key);
 
-        Ok(KdbxInnerHeader {
+        KdbxInnerHeader {
             inner_stream_cipher,
             inner_stream_key,
             other_headers: Vec::new(),
-        })
+        }
     }
 
     pub(crate) fn read<R: Read>(reader: &mut R) -> Result<KdbxInnerHeader> {

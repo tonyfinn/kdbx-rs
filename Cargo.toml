@@ -19,7 +19,7 @@ derive_more = "0.99.5"
 thiserror = "1.0"
 uuid = { version = "0.8", features = ["v4"] }
 xml-rs = "0.8.3"
-getrandom = "0.1"
+rand = "0.7"
 
 libflate = "1.0"
 rust-argon2 = "0.8"

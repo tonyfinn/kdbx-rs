@@ -47,7 +47,7 @@ fn main() -> Result<(), Error> {
     let output_path = PathBuf::from("kdbx_rs.kdbx");
     let mut file = File::create(output_path).expect("Could not open output file");
 
-    let mut kdbx = Kdbx::from_database(db)?;
+    let mut kdbx = Kdbx::from_database(db);
     kdbx.set_key(CompositeKey::from_password("kdbxrs"))?;
     kdbx.write(&mut file).expect("Could not write to file");
     Ok(())

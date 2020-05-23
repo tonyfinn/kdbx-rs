@@ -67,7 +67,7 @@
 //! # fn main() -> Result<(), kdbx_rs::Error> {
 //! # let mut database = Database::default();
 //! # let file_path = "/tmp/kdbx-rs-example.kdbx";
-//! let mut kdbx = Kdbx::from_database(database)?;
+//! let mut kdbx = Kdbx::from_database(database);
 //! kdbx.set_key(CompositeKey::from_password("foo123"))?;
 //!
 //! let mut file = File::create(file_path).unwrap();
@@ -78,16 +78,16 @@
 //! Alternatively, [`kdbx_rs::from_reader`] can be used to open a database
 //! from a non file source (such as in-memory or a network stream)
 //!
-//! [`CompositeKey`]: ./struct.CompositeKey.html
-//! [`Database`]: ./struct.Database.html
-//! [`Database::default()`]: ./struct.Database.html#method.default
-//! [`kdbx_rs::from_reader`]: ./fn.from_reader.html
-//! [`kdbx_rs::open`]: ./fn.open.html
-//! [`Kdbx`]: ./struct.Kdbx.html
-//! [`Kdbx.from_database`]: ./struct.Kdbx.html#method.from_database
-//! [`Kdbx.set_key`]: ./struct.Kdbx.html#method.set_key
-//! [`Kdbx.unlock`]: ./struct.Kdbx.html#method.unlock
-//! [`Kdbx.write`]: ./struct.Kdbx.html#method.write
+//! [`CompositeKey`]: crate::CompositeKey
+//! [`Database`]: crate::Database
+//! [`Database::default()`]: crate::Database#method.default
+//! [`kdbx_rs::from_reader`]: crate::from_reader
+//! [`kdbx_rs::open`]: crate::open
+//! [`Kdbx`]: crate::Kdbx
+//! [`Kdbx.from_database`]: crate::Kdbx#method.from_database
+//! [`Kdbx.set_key`]: crate::Kdbx#method.set_key
+//! [`Kdbx.unlock`]: crate::Kdbx#method.unlock
+//! [`Kdbx.write`]: crate::Kdbx#method.write
 
 pub mod binary;
 mod crypto;

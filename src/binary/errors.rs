@@ -82,11 +82,3 @@ pub enum WriteError {
     #[error("No key to write database with")]
     MissingKeys,
 }
-
-#[derive(Debug, Error)]
-/// Errors encountered writing a database
-pub enum DatabaseCreationError {
-    /// Could not obtain secure random data
-    #[error("Error getting RNG data for keys")]
-    Random(#[from] getrandom::Error),
-}
