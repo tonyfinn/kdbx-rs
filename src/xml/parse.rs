@@ -356,6 +356,11 @@ fn parse_file<R: Read, S: StreamCipher + ?Sized>(
 }
 
 /// Parse decrypted XML into a database
+///
+/// If you need to obtain a stream cipher, consider using
+/// [`InnerStreamCipherAlgorithm::stream_cipher`][crate::binary::InnerStreamCipherAlgorithm#stream_cipher]
+/// if the XML contains encrypted data, or [`utils::NullStreamCipher`][crate::utils::NullStreamCipher]
+/// if it does not (such as an export from the official client).
 pub fn parse_xml<R: Read, S: StreamCipher + ?Sized>(
     xml_data: R,
     stream_cipher: &mut S,

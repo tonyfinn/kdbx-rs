@@ -1,6 +1,7 @@
 use kdbx_rs;
+use kdbx_rs::binary::InnerStreamCipherAlgorithm;
 use kdbx_rs::database::{Entry, Group, Times};
-use kdbx_rs::xml::{write_xml, default_stream_cipher_with_key};
+use kdbx_rs::xml::write_xml;
 
 use chrono::NaiveDate;
 use std::fs::read_to_string;
@@ -47,7 +48,8 @@ fn generate_xml() -> Result<(), kdbx_rs::Error> {
     let mut output_buffer = Vec::new();
 
     let key = vec![0xA0; 16];
-    write_xml(&mut output_buffer, &db, &mut default_stream_cipher_with_key(key))?;
+    let mut stream_cipher = InnerStreamCipherAlgorithm::ChaCha20.stream_cipher(&key).unwrap();
+    write_xml(&mut output_buffer, &db, stream_cipher.as_mut())?;
     let xml_string = String::from_utf8(output_buffer).unwrap();
     assert_eq!(expected_xml_string, xml_string);
     Ok(())

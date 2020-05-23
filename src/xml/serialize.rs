@@ -144,6 +144,11 @@ fn write_group<W: Write, S: StreamCipher + ?Sized>(writer: &mut XmlWriter<W>, gr
 }
 
 /// Write the decrypted XML for a database to a file
+///
+/// If you need to obtain a stream cipher, try
+/// [`InnerStreamCipherAlgorithm::stream_cipher`][crate::binary::InnerStreamCipherAlgorithm#stream_cipher]
+/// if the XML contains encrypted data, or [`utils::NullStreamCipher`][crate::utils::NullStreamCipher]
+/// if it does not (such as an export from the official client).
 pub fn write_xml<W: Write, S: StreamCipher + ?Sized>(output: W, database: &Database, stream_cipher: &mut S) -> Result<()> {
     let config = xml::EmitterConfig::default()
         .perform_indent(true)

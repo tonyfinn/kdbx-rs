@@ -6,6 +6,9 @@
 * New APIs;
   * `Group::recursive_entries()` / `Group::recursive_entries_mut()` for iterating
     through all entries in a group and its child groups
+  * `utils::NullStreamCipher` to parse/write XML files without inner encryption
+* Removed APIs
+  * `kdbx_rs::xml::default_stream_cipher` - use `NullStreamCipher` or `InnerStreamCipherAlgorithm::stream_cipher()`
 
 ## 0.1.2
 

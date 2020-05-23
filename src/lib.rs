@@ -95,7 +95,7 @@ mod crypto;
 pub mod errors;
 mod stream;
 mod types;
-mod utils;
+pub mod utils;
 pub mod xml;
 
 pub use crate::types::Database;

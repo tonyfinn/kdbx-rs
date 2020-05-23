@@ -1,5 +1,4 @@
 use chacha20::ChaCha20;
-use rand::{rngs::OsRng, RngCore};
 use salsa20::Salsa20;
 use sha2::{Digest, Sha256, Sha512};
 use stream_cipher::{NewStreamCipher, StreamCipher};
@@ -18,7 +17,8 @@ pub enum InnerStreamError {
 }
 
 impl InnerStreamCipherAlgorithm {
-    pub(crate) fn stream_cipher(
+    /// Create a stream cipher instance for this algorithm
+    pub fn stream_cipher(
         self,
         key: &[u8],
     ) -> Result<Box<dyn StreamCipher>, InnerStreamError> {
@@ -36,24 +36,4 @@ impl InnerStreamCipherAlgorithm {
             _ => Err(InnerStreamError::UnsupportedCipher(self)),
         }
     }
-}
-
-/// Return a default stream cipher and its key
-///
-/// The stream cipher is created using ChaCha20, and the key is generated from OS randomness.
-pub fn default_stream_cipher() -> (impl StreamCipher, Vec<u8>) {
-    let mut key = vec![0u8; 64];
-    OsRng.fill_bytes(&mut key);
-    let iv = Sha512::digest(key.as_ref());
-    let cipher = ChaCha20::new_var(&iv[0..32], &iv[32..44]).unwrap();
-
-    (cipher, key)
-}
-
-/// Create a default stream cipher with a given key
-///
-/// The stream cipher is created using ChaCha20, and the key is generated from OS randomness.
-pub fn default_stream_cipher_with_key(key: Vec<u8>) -> impl StreamCipher {
-    let iv = Sha512::digest(key.as_ref());
-    ChaCha20::new_var(&iv[0..32], &iv[32..44]).unwrap()
 }
