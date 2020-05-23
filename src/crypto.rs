@@ -13,11 +13,11 @@ type HmacSha256 = Hmac<Sha256>;
 /// of password, keyfile or both.
 ///
 /// For the compmon case of creating credentials from just a password,
-/// you can use 
+/// you can use
 ///
 /// ```
 /// # use kdbx_rs::CompositeKey;
-/// CompositeKey::from_password("abcdef"); 
+/// CompositeKey::from_password("abcdef");
 /// ```
 ///
 /// Otherwise you can use [`CompositeKey::new`] to provide other combinations

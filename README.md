@@ -56,12 +56,16 @@ kdbx.write(&mut file)?;
 | .kdbx 3          | No        | Read only    | No        | Yes         | No             |
 | .kdb             | No        | No           | No        | No          | Yes            |
 | **Algorithms**   |           |              |           |             |                |
-| AES KDF          | Yes       | Yes          | Yes       | Yes         | Yes            |
-| Argon 2 KDF      | Yes       | Yes          | Yes       | No          | Yes            |
-| AES Cipher       | Yes       | Yes          | Yes       | Yes         | Yes            |
-| TwoFish Cipher   | Yes       | Yes          | No        | Yes         | No             |
-| Chacha20 Cipher  | Yes       | Yes          | Yes       | No          | No             |
-| Salsa20 Cipher   | No        | Yes          | Yes       | Yes         | No             |
+| *KDFS*           |           |              |           |             |                |
+| AES              | Yes       | Yes          | Yes       | Yes         | Yes            |
+| Argon 2          | Yes       | Yes          | Yes       | No          | Yes            |
+|*Database Ciphers*|           |              |           |             |                |
+| AES              | Yes       | Yes          | Yes       | Yes         | Yes            |
+| TwoFish          | Yes       | Yes          | No        | Yes         | No             |
+| Chacha20         | Yes       | Yes          | Yes       | No          | No             |
+| *Value Ciphers*  |           |              |           |             |                |
+| Chacha20         | Yes       | Yes          | Yes       | No          | No             |
+| Salsa20          | Yes       | Yes          | Yes       | Yes         | No             |
 | **Features**     |           |              |           |             |                |
 | Memory protection| No        | Yes          | No        | No          | Yes            |
 | Keyfile auth     | Yes       | Yes          | Yes       | Yes         | Yes            |

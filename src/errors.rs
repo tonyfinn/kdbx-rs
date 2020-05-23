@@ -1,10 +1,9 @@
 //! Error types for kdbx-rs
 
-pub use crate::binary::errors::{
-    HeaderError, OpenError, UnlockError, WriteError,
-};
+pub use crate::binary::errors::{HeaderError, OpenError, UnlockError, WriteError};
 pub use crate::binary::FailedUnlock;
 pub use crate::crypto::KeyGenerationError;
+pub use crate::stream::random::InnerStreamError;
 pub use crate::xml::parse::Error as XmlReadError;
 pub use crate::xml::serialize::Error as XmlWriteError;
 use thiserror::Error;

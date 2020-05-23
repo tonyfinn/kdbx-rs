@@ -1,5 +1,5 @@
-use chacha20::stream_cipher::SyncStreamCipher;
 use std::io::{self, Read, Write};
+use stream_cipher::SyncStreamCipher;
 
 pub(crate) struct StreamCipherReader<C, R>
 where

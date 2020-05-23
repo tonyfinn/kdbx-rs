@@ -15,7 +15,7 @@ fn kdbx4_parsing() -> Result<(), kdbx_rs::Error> {
     let db = kdbx_rs::from_reader(file).unwrap();
     let key = kdbx_rs::CompositeKey::from_password("kdbxrs");
     let db = db.unlock(&key)?;
-    let xml = kdbx_rs::xml::parse_xml(db.raw_xml().unwrap())?;
+    let xml = db.database();
 
     assert_eq!(1, xml.groups.len());
     assert_eq!("Root", xml.groups[0].name);
@@ -28,6 +28,7 @@ fn kdbx4_parsing() -> Result<(), kdbx_rs::Error> {
         "d5870a13-f968-41c5-a233-69b7bc86a628",
         xml.groups[0].entries[0].uuid.to_string()
     );
+    assert_eq!(Some("password2"), xml.groups[0].entries[0].password());
     assert_eq!(1, xml.groups[0].entries[0].history.len());
     assert_eq!(
         "d5870a13-f968-41c5-a233-69b7bc86a628",
@@ -50,7 +51,7 @@ fn kdbx4_parsing_twofish() -> Result<(), kdbx_rs::Error> {
     let db = kdbx_rs::from_reader(file).unwrap();
     let key = kdbx_rs::CompositeKey::from_password("kdbxrs");
     let db = db.unlock(&key)?;
-    let xml = kdbx_rs::xml::parse_xml(db.raw_xml().unwrap())?;
+    let xml = db.database();
 
     assert_eq!(1, xml.groups.len());
     assert_eq!("Root", xml.groups[0].name);
@@ -85,7 +86,7 @@ fn kdbx4_parsing_chacha20() -> Result<(), kdbx_rs::Error> {
     let db = kdbx_rs::from_reader(file).unwrap();
     let key = kdbx_rs::CompositeKey::from_password("kdbxrs");
     let db = db.unlock(&key)?;
-    let xml = kdbx_rs::xml::parse_xml(db.raw_xml().unwrap())?;
+    let xml = db.database();
 
     assert_eq!(1, xml.groups.len());
     assert_eq!("Root", xml.groups[0].name);

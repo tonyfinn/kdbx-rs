@@ -31,6 +31,7 @@ chacha20 = "0.3.4"
 hmac = "0.7.1"
 salsa20 = "0.4.1"
 sha2 = "0.8.1"
+stream-cipher = "0.3.2"
 twofish = "0.2.0"
 
 [[bin]]

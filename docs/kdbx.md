@@ -309,14 +309,20 @@ To perform this encryption, a stream cipher is used. The configuration values fo
 in the inner header in KDBX 4, or the outer header in earlier versions. There are two configuration 
 value. The first is the cipher ID, which is used to select which stream cipher to use.
 
-Currently used Ciphers:
+Currently defined Ciphers:
 
-* 1 - ArcFour
+* 1 - ArcFour (Only used for `.kdb` files)
 * 2 - Salsa20
 * 3 - Chacha20
 
-The second is the inner stream key, which is used to setup the stream cipher. The size of this depends
-on the algorithm in use.
+The second is the inner stream key, which is used to setup the stream cipher.
+
+The stream cipher is set up as follows:
+
+* For Salsa20, the key is the first 32 bytes of sha256(inner stream key) and the IV is the constant
+  value: [0xe8, 0x30, 0x09, 0x4b, 0x97, 0x20, 0x5d, 0x2a]
+* For Chacha20, the key is the first 32 bytes of sha512(inner stream key) and the IV is the following
+  12 bytes
 
 Each protected value is decrypted by the stream cipher in the order they appear in the database. The
 same cipher should be used to decrypt every value.

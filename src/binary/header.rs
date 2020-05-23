@@ -1,9 +1,9 @@
-use super::errors::{HeaderError as Error};
+use super::errors::HeaderError as Error;
 use super::header_fields;
 use super::variant_dict;
 use crate::crypto;
 use crate::utils;
-use rand::{RngCore, rngs::OsRng};
+use rand::{rngs::OsRng, RngCore};
 use sha2::{Digest, Sha256};
 use std::convert::TryInto;
 use std::io::{Read, Write};
@@ -388,7 +388,7 @@ impl KdbxHeader {
 
 #[derive(Default)]
 pub struct KdbxInnerHeaderBuilder {
-    pub inner_stream_cipher: Option<header_fields::InnerStreamCipher>,
+    pub inner_stream_cipher: Option<header_fields::InnerStreamCipherAlgorithm>,
     pub inner_stream_key: Option<Vec<u8>>,
     /// Custom and unrecognized header types
     pub other_headers: Vec<HeaderField<InnerHeaderId>>,
@@ -426,7 +426,7 @@ impl KdbxInnerHeaderBuilder {
 #[derive(Debug, PartialEq, Eq)]
 pub struct KdbxInnerHeader {
     /// Cipher identifier for data encrypted in memory
-    pub inner_stream_cipher: header_fields::InnerStreamCipher,
+    pub inner_stream_cipher: header_fields::InnerStreamCipherAlgorithm,
     /// Cipher key for data encrypted in memory
     pub inner_stream_key: Vec<u8>,
     /// Headers not handled by this library
@@ -445,7 +445,7 @@ impl KdbxInnerHeader {
     /// [`rand`]: https://docs.rs/rand/
     /// [`OsRng`]: https://docs.rs/rand/0.7/rand/rngs/struct.OsRng.html
     pub fn from_os_random() -> KdbxInnerHeader {
-        let inner_stream_cipher = header_fields::InnerStreamCipher::ChaCha20;
+        let inner_stream_cipher = header_fields::InnerStreamCipherAlgorithm::ChaCha20;
         let mut inner_stream_key = vec![0u8; 44]; // 32 bit key + 12 bit nonce for chacha20
         OsRng.fill_bytes(&mut inner_stream_key);
 

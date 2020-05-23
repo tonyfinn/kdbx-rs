@@ -1,6 +1,7 @@
 use super::header;
 use super::header_fields;
 use crate::crypto;
+use crate::stream::random::InnerStreamError;
 use thiserror::Error;
 
 #[derive(Error, Debug)]
@@ -38,6 +39,9 @@ pub enum UnlockError {
     /// The inner header is invalid
     #[error("Inner header invalid - {0}")]
     InvalidInnerHeader(#[from] HeaderError),
+    /// The inner stream is invalid
+    #[error("Cannot create inner stream to read protected values - {0}")]
+    InnerStream(#[from] InnerStreamError),
     /// The inner header is invalid
     #[error("Corrupt database. XML data is invald - {0}")]
     InvalidXml(#[from] crate::errors::XmlReadError),

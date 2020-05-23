@@ -139,18 +139,21 @@ impl Kdbx<Unlocked> {
         self.state.xml_data.as_deref()
     }
 
+    /// Password database stored in this kdbx archive
+    pub fn database(&self) -> &crate::Database {
+        &self.state.database
+    }
+
     /// Generate a new .kdbx from the given database
     ///
-    /// Uses OS randomness provided by the `rand` crates's [`OsRng`] to 
+    /// Uses OS randomness provided by the `rand` crates's [`OsRng`] to
     /// generate all required seeds and IVs.
     ///
     /// Note that you need to set a key with [`Kdbx::set_key`]
     /// to be able to write the database
     ///
     /// [`OsRng`]: https://docs.rs/rand/0.7/rand/rngs/struct.OsRng.html
-    pub fn from_database(
-        database: crate::Database,
-    ) -> Kdbx<Unlocked> {
+    pub fn from_database(database: crate::Database) -> Kdbx<Unlocked> {
         let header = header::KdbxHeader::from_os_random();
         let inner_header = header::KdbxInnerHeader::from_os_random();
         let unlocked = Unlocked {
@@ -257,7 +260,10 @@ impl Kdbx<Locked> {
             let parsed = self
                 .decrypt_data(&master_key)
                 .and_then(|(inner_header, data)| {
-                    let parsed = crate::xml::parse_xml(data.as_slice())?;
+                    let mut stream_cipher = inner_header
+                        .inner_stream_cipher
+                        .stream_cipher(inner_header.inner_stream_key.as_ref())?;
+                    let parsed = crate::xml::parse_xml(data.as_slice(), stream_cipher.as_mut())?;
                     Ok((inner_header, data, parsed))
                 });
 

@@ -63,8 +63,8 @@ impl From<Cipher> for HeaderField<OuterHeaderId> {
 }
 
 /// Inner stream cipher identifier used for encrypting protected fields
-#[derive(Debug, PartialEq, Eq, Clone)]
-pub enum InnerStreamCipher {
+#[derive(Debug, PartialEq, Eq, Clone, Copy)]
+pub enum InnerStreamCipherAlgorithm {
     /// ArcFour algorithm
     ArcFour,
     /// Salsa20 stream cipher
@@ -75,8 +75,8 @@ pub enum InnerStreamCipher {
     Unknown(u32),
 }
 
-impl From<InnerStreamCipher> for HeaderField<InnerHeaderId> {
-    fn from(cipher: InnerStreamCipher) -> HeaderField<InnerHeaderId> {
+impl From<InnerStreamCipherAlgorithm> for HeaderField<InnerHeaderId> {
+    fn from(cipher: InnerStreamCipherAlgorithm) -> HeaderField<InnerHeaderId> {
         HeaderField::new(
             InnerHeaderId::InnerRandomStreamCipherId,
             u32::from(cipher).to_le_bytes().as_ref().to_vec(),
@@ -84,24 +84,24 @@ impl From<InnerStreamCipher> for HeaderField<InnerHeaderId> {
     }
 }
 
-impl From<u32> for InnerStreamCipher {
-    fn from(id: u32) -> InnerStreamCipher {
+impl From<u32> for InnerStreamCipherAlgorithm {
+    fn from(id: u32) -> InnerStreamCipherAlgorithm {
         match id {
-            1 => InnerStreamCipher::ArcFour,
-            2 => InnerStreamCipher::Salsa20,
-            3 => InnerStreamCipher::ChaCha20,
-            x => InnerStreamCipher::Unknown(x),
+            1 => InnerStreamCipherAlgorithm::ArcFour,
+            2 => InnerStreamCipherAlgorithm::Salsa20,
+            3 => InnerStreamCipherAlgorithm::ChaCha20,
+            x => InnerStreamCipherAlgorithm::Unknown(x),
         }
     }
 }
 
-impl From<InnerStreamCipher> for u32 {
-    fn from(id: InnerStreamCipher) -> u32 {
+impl From<InnerStreamCipherAlgorithm> for u32 {
+    fn from(id: InnerStreamCipherAlgorithm) -> u32 {
         match id {
-            InnerStreamCipher::ArcFour => 1,
-            InnerStreamCipher::Salsa20 => 2,
-            InnerStreamCipher::ChaCha20 => 3,
-            InnerStreamCipher::Unknown(x) => x,
+            InnerStreamCipherAlgorithm::ArcFour => 1,
+            InnerStreamCipherAlgorithm::Salsa20 => 2,
+            InnerStreamCipherAlgorithm::ChaCha20 => 3,
+            InnerStreamCipherAlgorithm::Unknown(x) => x,
         }
     }
 }
