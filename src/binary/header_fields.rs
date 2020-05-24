@@ -242,9 +242,7 @@ impl Into<VariantDict> for KdfParams {
                 vdict.insert(
                     "$UUID".into(),
                     variant_dict::Value::Array(
-                        uuid::Uuid::from(KdfAlgorithm::Argon2)
-                            .as_bytes()
-                            .to_vec()
+                        uuid::Uuid::from(KdfAlgorithm::Argon2).as_bytes().to_vec(),
                     ),
                 );
                 vdict.insert("M".into(), variant_dict::Value::Uint64(memory_bytes));

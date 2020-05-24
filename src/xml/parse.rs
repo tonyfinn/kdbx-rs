@@ -193,11 +193,9 @@ fn parse_entry<R: Read, S: StreamCipher + ?Sized>(
                 if &name.local_name == "History" {
                     entry.history = parse_history(xml_event_reader, stream_cipher)?;
                 } else if &name.local_name == "String" {
-                    entry
-                        .fields
-                        .push(parse_field(xml_event_reader, "String", stream_cipher)?);
+                    entry.add_field(parse_field(xml_event_reader, "String", stream_cipher)?);
                 } else if &name.local_name == "UUID" {
-                    entry.uuid = parse_uuid(xml_event_reader)?;
+                    entry.set_uuid(parse_uuid(xml_event_reader)?);
                 } else if &name.local_name == "Times" {
                     entry.times = parse_times(xml_event_reader)?;
                 }
@@ -222,9 +220,9 @@ fn parse_group<R: Read, S: StreamCipher + ?Sized>(
                 } else if &name.local_name == "Entry" {
                     group.add_entry(parse_entry(xml_event_reader, stream_cipher)?);
                 } else if &name.local_name == "UUID" {
-                    group.uuid = parse_uuid(xml_event_reader)?;
+                    group.set_uuid(parse_uuid(xml_event_reader)?);
                 } else if &name.local_name == "Name" {
-                    group.name = parse_string(xml_event_reader)?.unwrap_or_else(String::new);
+                    group.set_name(parse_string(xml_event_reader)?.unwrap_or_else(String::new));
                 } else if &name.local_name == "Times" {
                     group.times = parse_times(xml_event_reader)?;
                 }

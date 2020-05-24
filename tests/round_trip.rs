@@ -19,8 +19,8 @@ fn key() -> CompositeKey {
 #[test]
 fn round_trip() -> Result<(), kdbx_rs::Error> {
     let mut db = kdbx_rs::Database::default();
-    db.meta.database_name = DATABASE_NAME.to_string();
-    db.meta.database_description = DATABASE_DESC.to_string();
+    db.set_name(DATABASE_NAME.to_string());
+    db.set_description(DATABASE_DESC.to_string());
     let mut group = Group::default();
     group.set_name(GROUP_NAME);
     let group_times = group.times.clone();
@@ -29,8 +29,8 @@ fn round_trip() -> Result<(), kdbx_rs::Error> {
     entry.set_password(ENTRY_PASSWORD);
     entry.add_field(Field::new("Password", ENTRY_PASSWORD));
     let entry_times = entry.times.clone();
-    group.entries.push(entry);
-    db.groups.push(group);
+    group.add_entry(entry);
+    db.replace_root(group);
     let mut kdbx = Kdbx::from_database(db);
 
     let mut output_buf = Vec::new();
@@ -41,12 +41,13 @@ fn round_trip() -> Result<(), kdbx_rs::Error> {
     let unlocked = reparsed.unlock(&key())?;
     assert_eq!(unlocked.meta().database_name, DATABASE_NAME);
     assert_eq!(unlocked.meta().database_description, DATABASE_DESC);
-    let root = unlocked.root().unwrap();
+    let root = unlocked.root();
     assert_eq!(root.name(), GROUP_NAME);
-    assert_eq!(root.entries[0].title().unwrap(), ENTRY_NAME);
-    assert_eq!(root.entries[0].password().unwrap(), ENTRY_PASSWORD);
+    let first_entry: &Entry = root.entries().collect::<Vec<_>>()[0];
+    assert_eq!(first_entry.title().unwrap(), ENTRY_NAME);
+    assert_eq!(first_entry.password().unwrap(), ENTRY_PASSWORD);
     assert_eq!(root.times, group_times);
-    assert_eq!(root.entries[0].times, entry_times);
+    assert_eq!(first_entry.times, entry_times);
 
     Ok(())
 }

@@ -125,9 +125,9 @@ fn write_entry<W: Write, S: StreamCipher + ?Sized>(
     stream_cipher: &mut S,
 ) -> Result<()> {
     writer.write(XmlEvent::start_element("Entry"))?;
-    write_string_tag(writer, "UUID", &encode_uuid(&entry.uuid))?;
+    write_string_tag(writer, "UUID", &encode_uuid(entry.uuid()))?;
     write_times(writer, &entry.times)?;
-    for field in &entry.fields {
+    for field in entry.fields() {
         write_field(writer, "String", field, stream_cipher)?;
     }
     if entry.history.len() > 0 {
@@ -147,8 +147,8 @@ fn write_group<W: Write, S: StreamCipher + ?Sized>(
     stream_cipher: &mut S,
 ) -> Result<()> {
     writer.write(XmlEvent::start_element("Group"))?;
-    write_string_tag(writer, "UUID", encode_uuid(&group.uuid))?;
-    write_string_tag(writer, "Name", &group.name)?;
+    write_string_tag(writer, "UUID", encode_uuid(group.uuid()))?;
+    write_string_tag(writer, "Name", group.name())?;
     write_times(writer, &group.times)?;
     for entry in group.entries() {
         write_entry(writer, &entry, stream_cipher)?;

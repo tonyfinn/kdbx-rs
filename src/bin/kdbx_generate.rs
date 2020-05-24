@@ -2,7 +2,7 @@
 //!
 //! Primarily for verifying kdbx-rs changes
 
-use kdbx_rs::database::{Entry, Group, Times};
+use kdbx_rs::database::{Entry, Times};
 use kdbx_rs::{CompositeKey, Database, Error, Kdbx};
 
 use chrono::NaiveDate;
@@ -30,19 +30,18 @@ fn main() -> Result<(), Error> {
     expected_path.push("generate_xml.xml");
 
     let mut db = Database::default();
-    db.meta.database_name = "BarName".to_string();
-    db.meta.database_description = "BazDesc".to_string();
-    let mut group = Group::default();
-    group.set_name("Root");
-    group.set_uuid(Uuid::from_u128(0x1234_5678));
-    group.times = sample_times();
+    db.set_name("BarName");
+    db.set_description("BazDesc".to_string());
+    let mut root = db.root_mut();
+    root.set_name("Root");
+    root.set_uuid(Uuid::from_u128(0x1234_5678));
+    root.times = sample_times();
     let mut entry = Entry::default();
     entry.set_title("Bar");
     entry.set_password("kdbxrs");
     entry.set_uuid(Uuid::from_u128(0x0065_4321));
     entry.times = sample_times();
-    group.entries.push(entry);
-    db.groups.push(group);
+    root.add_entry(entry);
 
     let output_path = PathBuf::from("kdbx_rs.kdbx");
     let mut file = File::create(output_path).expect("Could not open output file");

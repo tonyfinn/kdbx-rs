@@ -1,6 +1,6 @@
 use kdbx_rs;
 use kdbx_rs::binary::InnerStreamCipherAlgorithm;
-use kdbx_rs::database::{Entry, Group, Times};
+use kdbx_rs::database::{Entry, Times};
 use kdbx_rs::xml::write_xml;
 
 use chrono::NaiveDate;
@@ -33,7 +33,7 @@ fn generate_xml() -> Result<(), kdbx_rs::Error> {
     let mut db = kdbx_rs::Database::default();
     db.set_name("BarName");
     db.set_description("BazDesc");
-    let mut group = Group::default();
+    let mut group = db.root_mut();
     group.set_name("FooGroup");
     group.set_uuid(Uuid::from_u128(0x12345678));
     group.times = sample_times();
@@ -43,7 +43,6 @@ fn generate_xml() -> Result<(), kdbx_rs::Error> {
     entry.set_uuid(Uuid::from_u128(0x654321));
     entry.times = sample_times();
     group.add_entry(entry);
-    db.groups.push(group);
 
     let mut output_buffer = Vec::new();
 

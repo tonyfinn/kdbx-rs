@@ -15,18 +15,16 @@ fn kdbx4_parsing() -> Result<(), kdbx_rs::Error> {
     let db = kdbx_rs::from_reader(file).unwrap();
     let key = kdbx_rs::CompositeKey::from_password("kdbxrs");
     let db = db.unlock(&key)?;
-    let xml = db.database();
-
-    assert_eq!(1, xml.groups.len());
-
-    let root = xml.root().unwrap();
+    let root = db.database().root();
+    
     assert_eq!("Root", root.name());
     assert_eq!(
         "cd4233f1-fac2-4272-b309-3c5e7df90097",
         root.uuid().to_string()
     );
-    assert_eq!(1, root.entries.len());
-    let entry = &root.entries[0];
+    let entries: Vec<_> = root.entries().collect();
+    assert_eq!(1, entries.len());
+    let entry = entries[0];
     assert_eq!(
         "d5870a13-f968-41c5-a233-69b7bc86a628",
         entry.uuid().to_string()
@@ -54,18 +52,16 @@ fn kdbx4_parsing_twofish() -> Result<(), kdbx_rs::Error> {
     let db = kdbx_rs::from_reader(file).unwrap();
     let key = kdbx_rs::CompositeKey::from_password("kdbxrs");
     let db = db.unlock(&key)?;
-    let xml = db.database();
+    let root = db.database().root();
 
-    assert_eq!(1, xml.groups.len());
-
-    let root = xml.root().unwrap();
     assert_eq!("Root", root.name());
     assert_eq!(
         "cd4233f1-fac2-4272-b309-3c5e7df90097",
         root.uuid().to_string()
     );
-    assert_eq!(1, root.entries.len());
-    let entry = &root.entries[0];
+    let entries: Vec<_> = root.entries().collect();
+    assert_eq!(1, entries.len());
+    let entry = entries[0];
     assert_eq!(
         "d5870a13-f968-41c5-a233-69b7bc86a628",
         entry.uuid().to_string()
@@ -94,18 +90,16 @@ fn kdbx4_parsing_chacha20() -> Result<(), kdbx_rs::Error> {
     let db = kdbx_rs::from_reader(file).unwrap();
     let key = kdbx_rs::CompositeKey::from_password("kdbxrs");
     let db = db.unlock(&key)?;
-    let xml = db.database();
-
-    assert_eq!(1, xml.groups.len());
-
-    let root = xml.root().unwrap();
+    let root = db.database().root();
+    
     assert_eq!("Root", root.name());
     assert_eq!(
         "cd4233f1-fac2-4272-b309-3c5e7df90097",
         root.uuid().to_string()
     );
-    assert_eq!(1, root.entries.len());
-    let entry = &root.entries[0];
+    let entries: Vec<_> = root.entries().collect();
+    assert_eq!(1, entries.len());
+    let entry = entries[0];
     assert_eq!(
         "d5870a13-f968-41c5-a233-69b7bc86a628",
         entry.uuid().to_string()

@@ -53,12 +53,17 @@
 //! let uuid = database.find_entry_mut(|f| f.title() == Some("Foo"))
 //!     .unwrap()
 //!     .uuid();
-//! # let mut source_group = database.root_mut().unwrap();
+//! # let mut source_group = database.root_mut();
 //! let entry = source_group.remove_entry(uuid).unwrap();
 //!
-//! let mut target_group = database.find_group_mut(|g| g.name == "Child Group").unwrap();
+//! let mut target_group = database.find_group_mut(|g| g.name() == "Child Group").unwrap();
 //! target_group.add_entry(entry);
 //! ```
+
+use chrono::{NaiveDateTime, Timelike};
+use std::borrow::Cow;
+use std::ops::{Index, IndexMut};
+use uuid::Uuid;
 
 #[doc(hidden)]
 pub fn doc_sample_db() -> Database {
@@ -85,11 +90,6 @@ pub fn doc_sample_db() -> Database {
 
     database
 }
-
-use chrono::{NaiveDateTime, Timelike};
-use std::borrow::Cow;
-use std::ops::{Index, IndexMut};
-use uuid::Uuid;
 
 /// A value for a `Field` stored in an `Entry`
 #[derive(Debug, Clone, PartialEq, Eq)]
@@ -200,11 +200,11 @@ impl IndexMut<usize> for History {
 /// A single password entry
 pub struct Entry {
     /// Identifier for this entry
-    pub uuid: Uuid,
+    uuid: Uuid,
     /// Key-value pairs of current data for this entry
-    pub fields: Vec<Field>,
+    fields: Vec<Field>,
     /// Previous versions of this entry
-    pub history: History,
+    pub(crate) history: History,
     /// Information about access times
     pub times: Times,
 }
@@ -378,13 +378,13 @@ impl Default for Entry {
 /// A group or folder of password entries and child groups
 pub struct Group {
     /// Identifier for this group
-    pub uuid: Uuid,
+    uuid: Uuid,
     /// Name of this group
-    pub name: String,
+    name: String,
     /// Password items within this group
-    pub entries: Vec<Entry>,
+    entries: Vec<Entry>,
     /// Subfolders of this group
-    pub groups: Vec<Group>,
+    groups: Vec<Group>,
     /// Access times for this group
     pub times: Times,
 }
@@ -477,6 +477,16 @@ impl Group {
     /// Iterate mutably through all the direct child groups of this group
     pub fn groups_mut(&mut self) -> impl Iterator<Item = &mut Group> {
         self.groups.iter_mut()
+    }
+
+    /// Count of direct child groups of this group
+    pub fn group_count(&self) -> usize {
+        self.groups.len()
+    }
+
+    /// Count of direct entries of this group
+    pub fn entry_count(&self) -> usize {
+        self.entries.len()
     }
 
     /// Iterate through all the direct entries of this group
@@ -681,15 +691,26 @@ impl Default for Times {
     }
 }
 
-#[derive(Debug, Default, Clone, PartialEq, Eq)]
+#[derive(Debug, Clone, PartialEq, Eq)]
 /// Decrypted password database
 ///
 /// See the [module-level documentation][crate::database] for more information.
 pub struct Database {
     /// Meta information about this database
-    pub meta: Meta,
+    pub(crate) meta: Meta,
     /// Trees of items in this database
-    pub groups: Vec<Group>,
+    pub(crate) groups: Vec<Group>,
+}
+
+
+impl Default for Database {
+    fn default() -> Self {
+        let root = Group::new("Root");
+        Database {
+            meta: Meta::default(),
+            groups: vec![root]
+        }
+    }
 }
 
 impl Database {
@@ -723,56 +744,49 @@ impl Database {
         self.meta.database_description = desc.to_string();
     }
 
-    fn ensure_root(&mut self) {
-        if self.groups.is_empty() {
-            self.groups.push(Group::new("Root"));
-        }
-    }
-
     /// Add a entry to the root group
-    ///
-    /// Creates a root group if none exist
     pub fn add_entry(&mut self, entry: Entry) {
-        self.ensure_root();
         self.groups[0].entries.push(entry);
     }
 
     /// Add a child group to the root group
-    ///
-    /// Creates a root group if none exist
     pub fn add_group(&mut self, entry: Group) {
-        self.ensure_root();
         self.groups[0].groups.push(entry);
+    }
+
+    /// Replace the root group (and therefore all entries!) with a custom tree
+    pub fn replace_root(&mut self, group: Group) {
+        self.groups = vec![group];
     }
 
     /// Recursively searches for the first group matching a filter
     pub fn find_group<F: FnMut(&Group) -> bool>(&self, f: F) -> Option<&Group> {
-        self.root()?.find_group(f)
+        self.root().find_group(f)
     }
 
     /// Recursively searches for the first group matching a filter, returns it mutably
     pub fn find_group_mut<F: FnMut(&Group) -> bool>(&mut self, f: F) -> Option<&mut Group> {
-        self.root_mut()?.find_group_mut(f)
+        self.root_mut().find_group_mut(f)
     }
 
     /// Recursively searches for the first entry matching a filter
     pub fn find_entry<F: FnMut(&Entry) -> bool>(&self, f: F) -> Option<&Entry> {
-        self.root()?.find_entry(f)
+        self.root().find_entry(f)
     }
 
     /// Recursively searches for the first entry matching a filter, returns it mutably
     pub fn find_entry_mut<F: FnMut(&Entry) -> bool>(&mut self, f: F) -> Option<&mut Entry> {
-        self.root_mut()?.find_entry_mut(f)
+        self.root_mut().find_entry_mut(f)
     }
 
     /// Top level group for database entries
-    pub fn root(&self) -> Option<&Group> {
-        self.groups.get(0)
+    pub fn root(&self) -> &Group {
+        &self.groups[0]
     }
 
     /// Mutable top level group for database entries
-    pub fn root_mut(&mut self) -> Option<&mut Group> {
-        self.groups.get_mut(0)
+    pub fn root_mut(&mut self) -> &mut Group {
+        &mut self.groups[0]
     }
 }
 

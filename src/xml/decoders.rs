@@ -37,7 +37,7 @@ pub fn decode_datetime(strdate: &str) -> Option<NaiveDateTime> {
     }
 }
 
-pub(crate) fn encode_uuid(uuid: &Uuid) -> String {
+pub(crate) fn encode_uuid(uuid: Uuid) -> String {
     base64::encode(uuid.as_bytes())
 }
 

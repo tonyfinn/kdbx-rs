@@ -15,11 +15,10 @@ fn keepassxc_otp_read_secret() -> Result<(), kdbx_rs::Error> {
     let db = kdbx_rs::from_reader(file).unwrap();
     let key = kdbx_rs::CompositeKey::from_password("kdbxrs");
     let db = db.unlock(&key)?;
-    let xml = db.database();
-    assert_eq!(
-        "ABCDEFGHIJKLMNOP",
-        xml.groups[0].entries[0].otp().unwrap().secret().unwrap()
-    );
+    let entry = db
+        .find_entry(|e| e.title().map(|e| e.contains("OTP")).unwrap_or_default())
+        .unwrap();
+    assert_eq!("ABCDEFGHIJKLMNOP", entry.otp().unwrap().secret().unwrap());
 
     Ok(())
 }
