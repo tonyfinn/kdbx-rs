@@ -16,7 +16,7 @@ fn kdbx4_parsing() -> Result<(), kdbx_rs::Error> {
     let key = kdbx_rs::CompositeKey::from_password("kdbxrs");
     let db = db.unlock(&key)?;
     let root = db.database().root();
-    
+
     assert_eq!("Root", root.name());
     assert_eq!(
         "cd4233f1-fac2-4272-b309-3c5e7df90097",
@@ -91,7 +91,7 @@ fn kdbx4_parsing_chacha20() -> Result<(), kdbx_rs::Error> {
     let key = kdbx_rs::CompositeKey::from_password("kdbxrs");
     let db = db.unlock(&key)?;
     let root = db.database().root();
-    
+
     assert_eq!("Root", root.name());
     assert_eq!(
         "cd4233f1-fac2-4272-b309-3c5e7df90097",

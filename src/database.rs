@@ -93,13 +93,15 @@ pub fn doc_sample_db() -> Database {
 
 /// A value for a `Field` stored in an `Entry`
 #[derive(Debug, Clone, PartialEq, Eq)]
-pub enum Value {
+pub(crate) enum Value {
     /// A value using in-memory encryption
     Protected(String),
     /// A value that's unencrypted in the database
     Standard(String),
     /// A empty value
     Empty,
+    /// A empty value that should be protected if filled
+    ProtectEmpty,
 }
 
 impl Default for Value {
@@ -112,9 +114,9 @@ impl Default for Value {
 /// A key value pair
 pub struct Field {
     /// The name of this field
-    pub key: String,
+    pub(crate) key: String,
     /// The (optionally encrypted) value of this field
-    pub value: Value,
+    pub(crate) value: Value,
 }
 
 impl Field {
@@ -131,6 +133,66 @@ impl Field {
         Field {
             key: key.to_string(),
             value: Value::Protected(value.to_string()),
+        }
+    }
+
+    /// Key for this field
+    pub fn key(&self) -> &str {
+        &self.key
+    }
+
+    /// Set a new key for this field
+    pub fn set_key(&mut self, new_key: &str) {
+        self.key = new_key.to_string();
+    }
+
+    /// Value for this field
+    pub fn value(&self) -> Option<&str> {
+        match self.value {
+            Value::Protected(ref s) => Some(s),
+            Value::Standard(ref s) => Some(s),
+            _ => None,
+        }
+    }
+
+    /// Set a new value for this field
+    pub fn set_value(&mut self, value: &str) {
+        if self.protected() {
+            self.value = Value::Protected(value.to_string());
+        } else {
+            self.value = Value::Standard(value.to_string());
+        }
+    }
+
+    /// Empty out the field stored in this value
+    pub fn clear(&mut self) {
+        if self.protected() {
+            self.value = Value::ProtectEmpty;
+        } else {
+            self.value = Value::Empty;
+        }
+    }
+
+    /// Get whether memory protection and extra encryption should be applied
+    ///
+    /// Note: This is instructional for official clients, this library does not
+    /// support memory protection
+    pub fn protected(&self) -> bool {
+        matches!(self.value, Value::Protected(_))
+    }
+
+    /// Set whether memory protection and extra encryption should be applied
+    ///
+    /// Note: This is instructional for official clients, this library does not
+    /// support memory protection
+    pub fn set_protected(&mut self, protected: bool) {
+        let existing_value = std::mem::take(&mut self.value);
+        self.value = match (protected, existing_value) {
+            (true, Value::Standard(s)) => Value::Protected(s),
+            (false, Value::Protected(s)) => Value::Standard(s),
+            (true, Value::Empty) => Value::ProtectEmpty,
+            (false, Value::ProtectEmpty) => Value::Empty,
+            (_, v) => v,
         }
     }
 }
@@ -206,7 +268,7 @@ pub struct Entry {
     /// Previous versions of this entry
     pub(crate) history: History,
     /// Information about access times
-    pub times: Times,
+    pub(crate) times: Times,
 }
 
 impl Entry {
@@ -269,12 +331,18 @@ impl Entry {
         self.fields.iter_mut().find(|i| i.key.as_str() == key)
     }
 
+    /// Audit times for this entry
+    pub fn times(&self) -> &Times {
+        &self.times
+    }
+
+    /// Mutable audit times for this entry
+    pub fn times_mut(&mut self) -> &mut Times {
+        &mut self.times
+    }
+
     fn find_string_value(&self, key: &str) -> Option<&str> {
-        self.find(key).and_then(|f| match &f.value {
-            Value::Empty => None,
-            Value::Standard(s) => Some(s.as_ref()),
-            Value::Protected(p) => Some(p.as_ref()),
-        })
+        self.find(key).and_then(|f| f.value())
     }
 
     /// Set the identifier for this item
@@ -386,7 +454,7 @@ pub struct Group {
     /// Subfolders of this group
     groups: Vec<Group>,
     /// Access times for this group
-    pub times: Times,
+    pub(crate) times: Times,
 }
 
 impl Group {
@@ -610,6 +678,16 @@ impl Group {
         }
         None
     }
+
+    /// Audit times for this group
+    pub fn times(&self) -> &Times {
+        &self.times
+    }
+
+    /// Mutable audit times for this group
+    pub fn times_mut(&mut self) -> &mut Times {
+        &mut self.times
+    }
 }
 
 impl Default for Group {
@@ -702,13 +780,12 @@ pub struct Database {
     pub(crate) groups: Vec<Group>,
 }
 
-
 impl Default for Database {
     fn default() -> Self {
         let root = Group::new("Root");
         Database {
             meta: Meta::default(),
-            groups: vec![root]
+            groups: vec![root],
         }
     }
 }

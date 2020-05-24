@@ -47,12 +47,12 @@ fn write_field<W: Write, S: StreamCipher + ?Sized>(
             writer.write(XmlEvent::start_element("Value").attr("Protected", "True"))?;
             let mut encrypt_buf = v.clone().into_bytes();
             stream_cipher.encrypt(&mut encrypt_buf);
-            let encrypted = base64::encode(encrypt_buf);
+            let encrypted = base64::encode(&encrypt_buf);
             writer.write(XmlEvent::characters(&encrypted))?;
             writer.write(XmlEvent::end_element())?;
         }
         Value::Standard(v) => write_string_tag(writer, "Value", &v)?,
-        Value::Empty => {
+        Value::Empty | Value::ProtectEmpty => {
             writer.write(XmlEvent::start_element("Value"))?;
             writer.write(XmlEvent::end_element())?;
         }

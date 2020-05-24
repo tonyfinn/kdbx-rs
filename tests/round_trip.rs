@@ -23,12 +23,12 @@ fn round_trip() -> Result<(), kdbx_rs::Error> {
     db.set_description(DATABASE_DESC.to_string());
     let mut group = Group::default();
     group.set_name(GROUP_NAME);
-    let group_times = group.times.clone();
+    let group_times = group.times().clone();
     let mut entry = Entry::default();
     entry.add_field(Field::new("Title", ENTRY_NAME));
     entry.set_password(ENTRY_PASSWORD);
     entry.add_field(Field::new("Password", ENTRY_PASSWORD));
-    let entry_times = entry.times.clone();
+    let entry_times = entry.times().clone();
     group.add_entry(entry);
     db.replace_root(group);
     let mut kdbx = Kdbx::from_database(db);
@@ -46,8 +46,8 @@ fn round_trip() -> Result<(), kdbx_rs::Error> {
     let first_entry: &Entry = root.entries().collect::<Vec<_>>()[0];
     assert_eq!(first_entry.title().unwrap(), ENTRY_NAME);
     assert_eq!(first_entry.password().unwrap(), ENTRY_PASSWORD);
-    assert_eq!(root.times, group_times);
-    assert_eq!(first_entry.times, entry_times);
+    assert_eq!(root.times(), &group_times);
+    assert_eq!(first_entry.times(), &entry_times);
 
     Ok(())
 }

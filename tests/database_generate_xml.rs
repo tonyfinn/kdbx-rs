@@ -8,16 +8,14 @@ use std::fs::read_to_string;
 use std::path::PathBuf;
 use uuid::Uuid;
 
-fn sample_times() -> Times {
-    Times {
-        last_access_time: NaiveDate::from_ymd(2020, 05, 01).and_hms(1, 2, 3),
-        last_modification_time: NaiveDate::from_ymd(2020, 04, 01).and_hms(1, 2, 3),
-        creation_time: NaiveDate::from_ymd(2020, 04, 01).and_hms(1, 1, 3),
-        location_changed: NaiveDate::from_ymd(2020, 04, 01).and_hms(1, 1, 3),
-        expiry_time: NaiveDate::from_ymd(2020, 04, 01).and_hms(1, 1, 3),
-        expires: false,
-        usage_count: 1,
-    }
+fn set_sample_times(times: &mut Times) {
+    times.last_access_time = NaiveDate::from_ymd(2020, 5, 1).and_hms(1, 2, 3);
+    times.last_modification_time = NaiveDate::from_ymd(2020, 4, 1).and_hms(1, 2, 3);
+    times.creation_time = NaiveDate::from_ymd(2020, 4, 1).and_hms(1, 1, 3);
+    times.location_changed = NaiveDate::from_ymd(2020, 4, 1).and_hms(1, 1, 3);
+    times.expiry_time = NaiveDate::from_ymd(2020, 4, 1).and_hms(1, 1, 3);
+    times.expires = false;
+    times.usage_count = 1;
 }
 
 #[test]
@@ -33,15 +31,15 @@ fn generate_xml() -> Result<(), kdbx_rs::Error> {
     let mut db = kdbx_rs::Database::default();
     db.set_name("BarName");
     db.set_description("BazDesc");
-    let mut group = db.root_mut();
+    let group = db.root_mut();
     group.set_name("FooGroup");
     group.set_uuid(Uuid::from_u128(0x12345678));
-    group.times = sample_times();
+    set_sample_times(group.times_mut());
     let mut entry = Entry::default();
     entry.set_title("Bar");
     entry.set_password("kdbxrs");
     entry.set_uuid(Uuid::from_u128(0x654321));
-    entry.times = sample_times();
+    set_sample_times(entry.times_mut());
     group.add_entry(entry);
 
     let mut output_buffer = Vec::new();
