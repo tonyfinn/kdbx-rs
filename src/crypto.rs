@@ -92,7 +92,7 @@ impl ComposedKey {
                 let chunked: Vec<GenericArray<u8, _>> = self
                     .0
                     .chunks_exact(16)
-                    .map(|chunk| GenericArray::from_slice(chunk).clone())
+                    .map(|chunk| *GenericArray::from_slice(chunk))
                     .collect();
                 let mut blocks = [chunked[0], chunked[1]];
                 for _ in 0..*rounds {
@@ -161,10 +161,7 @@ impl HmacBlockKey {
         calc_hmac.input(&self.0.to_le_bytes());
         calc_hmac.input(&(data.len() as u32).to_le_bytes());
         calc_hmac.input(data);
-        match calc_hmac.verify(hmac) {
-            Ok(_) => true,
-            Err(_) => false,
-        }
+        calc_hmac.verify(hmac).is_ok()
     }
 
     /// Calculate a HMAC for a block in the data section
@@ -193,10 +190,7 @@ impl HmacBlockKey {
     pub(crate) fn verify_header_block(&self, hmac: &[u8], data: &[u8]) -> bool {
         let mut calc_hmac = HmacSha256::new_varkey(&self.1).unwrap();
         calc_hmac.input(data);
-        match calc_hmac.verify(hmac) {
-            Ok(_) => true,
-            Err(_) => false,
-        }
+        calc_hmac.verify(hmac).is_ok()
     }
 }
 

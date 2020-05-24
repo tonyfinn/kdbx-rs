@@ -196,7 +196,7 @@ impl TryFrom<VariantDict> for KdfParams {
             )
         })?;
 
-        let kdf_algorithm = KdfAlgorithm::from(uuid.clone());
+        let kdf_algorithm = KdfAlgorithm::from(uuid);
 
         match kdf_algorithm {
             KdfAlgorithm::Argon2 => {
@@ -221,7 +221,7 @@ impl TryFrom<VariantDict> for KdfParams {
                 Ok(KdfParams::Aes { rounds, salt })
             }
             _ => Ok(KdfParams::Unknown {
-                uuid: uuid.clone(),
+                uuid: uuid,
                 params: vdict,
             }),
         }
@@ -244,9 +244,7 @@ impl Into<VariantDict> for KdfParams {
                     variant_dict::Value::Array(
                         uuid::Uuid::from(KdfAlgorithm::Argon2)
                             .as_bytes()
-                            .iter()
-                            .cloned()
-                            .collect(),
+                            .to_vec()
                     ),
                 );
                 vdict.insert("M".into(), variant_dict::Value::Uint64(memory_bytes));
@@ -261,9 +259,7 @@ impl Into<VariantDict> for KdfParams {
                     variant_dict::Value::Array(
                         uuid::Uuid::from(KdfAlgorithm::Aes256_Kdbx4)
                             .as_bytes()
-                            .iter()
-                            .cloned()
-                            .collect(),
+                            .to_vec(),
                     ),
                 );
                 vdict.insert("R".into(), variant_dict::Value::Uint64(rounds));
@@ -272,7 +268,7 @@ impl Into<VariantDict> for KdfParams {
             KdfParams::Unknown { uuid, params } => {
                 vdict.insert(
                     "$UUID".into(),
-                    variant_dict::Value::Array(uuid.as_bytes().iter().cloned().collect()),
+                    variant_dict::Value::Array(uuid.as_bytes().to_vec()),
                 );
                 vdict.extend(params.into_iter())
             }

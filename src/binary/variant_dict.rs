@@ -74,12 +74,12 @@ impl Value {
 
     pub(crate) fn data(&self) -> Vec<u8> {
         match self {
-            Value::Uint32(val) => val.to_le_bytes().iter().cloned().collect(),
-            Value::Uint64(val) => val.to_le_bytes().iter().cloned().collect(),
+            Value::Uint32(val) => val.to_le_bytes().to_vec(),
+            Value::Uint64(val) => val.to_le_bytes().to_vec(),
             Value::Boolean(val) => vec![if *val { 1 } else { 0 }],
-            Value::Int32(val) => val.to_le_bytes().iter().cloned().collect(),
-            Value::Int64(val) => val.to_le_bytes().iter().cloned().collect(),
-            Value::String(val) => val.as_bytes().iter().cloned().collect(),
+            Value::Int32(val) => val.to_le_bytes().to_vec(),
+            Value::Int64(val) => val.to_le_bytes().to_vec(),
+            Value::String(val) => val.as_bytes().to_vec(),
             Value::Array(val) => val.clone(),
             Value::Unknown(_, val) => val.clone(),
         }
@@ -151,7 +151,7 @@ fn parse_variant_dict_entry<T: Read>(ty: u8, input: &mut T) -> Result<(String, V
     let mut length_buffer = [0u8; 4];
 
     input.read_exact(&mut length_buffer)?;
-    let key_length = i32::from_le_bytes(length_buffer.clone());
+    let key_length = i32::from_le_bytes(length_buffer);
     let mut key_buffer: Vec<u8> = buffer(key_length as usize);
     input.read_exact(&mut key_buffer)?;
     let key = String::from_utf8(key_buffer)?;

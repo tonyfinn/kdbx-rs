@@ -178,11 +178,11 @@ where
         let len = if major_version >= 4 {
             let mut len_buffer = [0u8; 4];
             self.reader.read_exact(&mut len_buffer)?;
-            u32::from_le_bytes(len_buffer.clone())
+            u32::from_le_bytes(len_buffer)
         } else {
             let mut len_buffer = [0u8; 2];
             self.reader.read_exact(&mut len_buffer)?;
-            u16::from_le_bytes(len_buffer.clone()) as u32
+            u16::from_le_bytes(len_buffer) as u32
         };
         let mut header_buffer = utils::buffer(len as usize);
         self.reader.read_exact(&mut header_buffer)?;
@@ -500,7 +500,7 @@ impl KdbxInnerHeader {
 
         Ok(KdbxInnerHeader {
             inner_stream_cipher: cipher_id.into(),
-            inner_stream_key: key.into(),
+            inner_stream_key: key,
             other_headers: Vec::new(),
         })
     }

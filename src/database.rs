@@ -50,7 +50,9 @@
 //!
 //! ```
 //! # let mut database = kdbx_rs::database::doc_sample_db();
-//! let uuid = database.find_entry_mut(|f| f.title() == Some("Foo")).unwrap().uuid();
+//! let uuid = database.find_entry_mut(|f| f.title() == Some("Foo"))
+//!     .unwrap()
+//!     .uuid();
 //! # let mut source_group = database.root_mut().unwrap();
 //! let entry = source_group.remove_entry(uuid).unwrap();
 //!
@@ -158,6 +160,11 @@ impl History {
     /// Count of entries in this history
     pub fn len(&self) -> usize {
         self.entries.len()
+    }
+
+    /// Count of entries in this history
+    pub fn is_empty(&self) -> bool {
+        self.len() == 0
     }
 
     /// Remove a historical version by index
