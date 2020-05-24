@@ -156,6 +156,39 @@ The master key is used as the basis of all other keys used for encryption. It is
 used directly in encryption. It is calculated by runing the configured KDF against the
 processed composite key.
 
+**Argon2**
+
+When the Argon2 KDF function is in use, the following parameters are read from the KDF parameter
+dictionary:
+
+* "I" - the number of passes/iterations of Argon2 to use
+* "V" - The argon 2 version to use, currently only 0x13 is widely used
+* "M" - The amount of memory (in bytes) for the function to use.
+* "P" - The number of parallel computations to perform
+* "S" - The salt to use to create the cipher
+
+In addition, the variant is hardcoded to Argon2d. The output of the Argon2d KDF is then
+used directly as the master key.
+
+**AES**
+
+When the AES KDF is used, the following parameters are read from the KDF parameter dictionary in KDBX 4
+
+* "R" - The number of rounds of AES to run
+* "S" - The key used for the cipher
+
+For KDBX 3.1, these are read from the `TransformRounds` / `TransformSeed` parameters
+in the outer head instead.
+
+The key is derived as follows:
+
+* Create an AES cipher in ECB mode using `S` as the key.
+* Create a buffer for the key with the initial value being the composite key.
+* Run `key = AES(key)` for the number of rounds specified by `R`
+  * Note that `S` is normally 32 bytes long. Depending on your AES library, you
+    might have to split the key into two blocks and run them in parallel manually.
+* The final key is then `sha256(key)`
+
 #### Cipher Key
 
 The cipher key is used for encrypting/decrypting the database. It is calculated as 
@@ -213,11 +246,13 @@ The block index is the position of the block in the file.
 
 In KDBX 3, each of these blocks have the following format:
 
+* Block ID (4 bytes)
 * SHA256 of plain text (32 bytes)
 * Ciphertext length (4 bytes)
 * Ciphertext (variable length)
 
-The block is verified by decrypting the ciphertext, then calculating the sha256 hash.
+The block is verified by decrypting the ciphertext, then calculating the sha256 hash of
+the decrypted plain text.
 
 
 ### Inner header - KDBX 4
@@ -294,6 +329,7 @@ Certain data types are encoded in the XML document. The following transformation
 
 * Datetimes (KDBX 4+): base64(seconds since 1/1/1 00:00:00) 
   * It's worth emphasising: Seconds since Year 1, not the unix epoch
+  * In KDBX 3, they're stored as ISO 8601 strings instead (e.g. "2020-05-01T00:00:00Z")
 * UUIDs: base64(uuid as byte array)
 
 Note that KeePass's export as XML stores datetimes as ISO 8601 strings, which is not how they

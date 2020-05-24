@@ -1,5 +1,7 @@
 use super::decoders::{decode_datetime, decode_uuid};
-use crate::types::{Database, Entry, Field, Group, MemoryProtection, Meta, Times, Value};
+use crate::database::{
+    Database, Entry, Field, Group, History, MemoryProtection, Meta, Times, Value,
+};
 use chrono::NaiveDateTime;
 use std::io::Read;
 use stream_cipher::StreamCipher;
@@ -80,7 +82,7 @@ fn parse_uuid<R: Read>(xml_event_reader: &mut EventReader<R>) -> Result<Uuid> {
 fn parse_datetime<R: Read>(xml_event_reader: &mut EventReader<R>) -> Result<NaiveDateTime> {
     parse_string(xml_event_reader)?
         .and_then(|dt| decode_datetime(&dt))
-        .ok_or(Error::InvalidUuid)
+        .ok_or(Error::InvalidDatetime)
 }
 
 fn parse_bool<R: Read>(xml_event_reader: &mut EventReader<R>) -> Result<bool> {
@@ -138,8 +140,8 @@ fn parse_field<R: Read, S: StreamCipher + ?Sized>(
 fn parse_history<R: Read, S: StreamCipher + ?Sized>(
     xml_event_reader: &mut EventReader<R>,
     stream_cipher: &mut S,
-) -> Result<Vec<Entry>> {
-    let mut history = Vec::new();
+) -> Result<History> {
+    let mut history = History::default();
     loop {
         match xml_event_reader.next()? {
             XmlEvent::StartElement { name, .. } if &name.local_name == "Entry" => {
@@ -216,13 +218,9 @@ fn parse_group<R: Read, S: StreamCipher + ?Sized>(
         match xml_event_reader.next()? {
             XmlEvent::StartElement { name, .. } => {
                 if &name.local_name == "Group" {
-                    group
-                        .children
-                        .push(parse_group(xml_event_reader, stream_cipher)?);
+                    group.add_group(parse_group(xml_event_reader, stream_cipher)?);
                 } else if &name.local_name == "Entry" {
-                    group
-                        .entries
-                        .push(parse_entry(xml_event_reader, stream_cipher)?);
+                    group.add_entry(parse_entry(xml_event_reader, stream_cipher)?);
                 } else if &name.local_name == "UUID" {
                     group.uuid = parse_uuid(xml_event_reader)?;
                 } else if &name.local_name == "Name" {

@@ -35,7 +35,7 @@
                     "kind": "bin"
                 }
             },
-            "args": ["res/kdbx4-argon2.kdbx"],
+            "args": ["res/test-input/kdbx4-argon2.kdbx"],
             "cwd": "${workspaceFolder}"
         },
         {
@@ -53,7 +53,25 @@
                     "kind": "bin"
                 }
             },
-            "args": ["kdbx_rs.kdbx"],
+            "args": ["res/test-input/kdbx-argon2-twofish.kdbx"],
+            "cwd": "${workspaceFolder}"
+        },
+        {
+            "type": "lldb",
+            "request": "launch",
+            "name": "Debug executable 'kdbx-decrypt'",
+            "cargo": {
+                "args": [
+                    "build",
+                    "--bin=kdbx-decrypt",
+                    "--package=kdbx-rs"
+                ],
+                "filter": {
+                    "name": "kdbx-decrypt",
+                    "kind": "bin"
+                }
+            },
+            "args": ["res/test_input/kdbx31-aes256.kdbx"],
             "cwd": "${workspaceFolder}"
         },
         {

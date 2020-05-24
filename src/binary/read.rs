@@ -30,14 +30,18 @@ pub fn from_reader<R: Read>(mut input: R) -> Result<Kdbx<Locked>, errors::OpenEr
     let minor_version = u16::from_le_bytes([buffer[0], buffer[1]]);
     let major_version = u16::from_le_bytes([buffer[2], buffer[3]]);
 
-    if major_version != 4 {
+    if major_version < 3 || major_version > 4 {
         return Err(errors::OpenError::UnsupportedMajorVersion(major_version));
     }
 
-    let (header, header_data) = header::KdbxHeader::read(caching_reader)?;
-
-    let mut hmac = utils::buffer(Sha256::output_size());
-    input.read_exact(&mut hmac)?;
+    let (header, header_data) = header::KdbxHeader::read(caching_reader, major_version)?;
+    let hmac = if major_version >= 4 {
+        let mut hmac = utils::buffer(Sha256::output_size());
+        input.read_exact(&mut hmac)?;
+        Some(hmac)
+    } else {
+        None
+    };
     let mut encrypted_data = Vec::new();
     input.read_to_end(&mut encrypted_data)?;
 

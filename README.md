@@ -39,6 +39,7 @@ database.add_entry(Entry);
 Saving a database to a file
 
 ```rust
+let mut database = Database::default();
 let kdbx = Kdbx::from_database(database);
 kdbx.set_key(CompositeKey::from_password("foo123"))?;
 
@@ -53,7 +54,7 @@ kdbx.write(&mut file)?;
 | License          | GPLv3+    | MIT          | MIT       | MIT/Apache  | ISC            |
 | **Formats**      |           |              |           |             |                |
 | .kdbx 4          | Yes       | Read only    | Read only | No          | No             |
-| .kdbx 3          | No        | Read only    | No        | Yes         | No             |
+| .kdbx 3          | Read only | Read only    | No        | Yes         | No             |
 | .kdb             | No        | No           | No        | No          | Yes            |
 | **Algorithms**                                                                         |
 | *KDFs*                                                                                 |

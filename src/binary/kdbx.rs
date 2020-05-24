@@ -1,11 +1,13 @@
 use super::{errors, header};
-use crate::{crypto, stream, types};
+use crate::{crypto, database, stream};
 use std::io::{Read, Write};
 use std::ops::{Deref, DerefMut};
 
 pub trait KdbxState: std::fmt::Debug {
     fn header(&self) -> &header::KdbxHeader;
     fn header_mut(&mut self) -> &mut header::KdbxHeader;
+    fn major_version(&self) -> u16;
+    fn minor_version(&self) -> u16;
     fn write<W: Write>(&self, output: W) -> Result<(), errors::WriteError>;
 }
 
@@ -16,7 +18,7 @@ pub trait KdbxState: std::fmt::Debug {
 /// or `Kdbx<Unlocked>`.
 ///
 /// A keepass 2 archive can be obtained in one of two ways. You may read
-/// an existing archive using [`kdbx_rs::open`][crate::open] or 
+/// an existing archive using [`kdbx_rs::open`][crate::open] or
 /// [`kdbx_rs::from_reader`][crate::from_reader].
 ///
 /// You can also create a password database using [`Database`][crate::Database],
@@ -37,6 +39,16 @@ impl<T: KdbxState> Kdbx<T> {
     /// Mutable encryption configuration and unencrypted custom data
     pub fn header_mut(&mut self) -> &mut header::KdbxHeader {
         self.state.header_mut()
+    }
+
+    /// Major archive version
+    pub fn major_version(&self) -> u16 {
+        self.state.major_version()
+    }
+
+    /// Major archive version
+    pub fn minor_version(&self) -> u16 {
+        self.state.minor_version()
     }
 
     /// Write this archive to the given output stream
@@ -96,8 +108,15 @@ impl Unlocked {
             self.header.compression_type,
         )?;
         self.inner_header.write(&mut encrypted_stream)?;
-        let mut stream_cipher = self.inner_header.inner_stream_cipher.stream_cipher(&self.inner_header.inner_stream_key)?;
-        crate::xml::write_xml(&mut encrypted_stream, &self.database, stream_cipher.as_mut())?;
+        let mut stream_cipher = self
+            .inner_header
+            .inner_stream_cipher
+            .stream_cipher(&self.inner_header.inner_stream_key)?;
+        crate::xml::write_xml(
+            &mut encrypted_stream,
+            &self.database,
+            stream_cipher.as_mut(),
+        )?;
 
         encrypted_stream.finish()?;
         Ok(encrypted_buf)
@@ -111,6 +130,14 @@ impl KdbxState for Unlocked {
 
     fn header_mut(&mut self) -> &mut header::KdbxHeader {
         &mut self.header
+    }
+
+    fn major_version(&self) -> u16 {
+        self.major_version
+    }
+
+    fn minor_version(&self) -> u16 {
+        self.minor_version
     }
 
     fn write<W: Write>(&self, mut output: W) -> Result<(), errors::WriteError> {
@@ -205,15 +232,15 @@ impl Kdbx<Unlocked> {
 }
 
 impl Deref for Kdbx<Unlocked> {
-    type Target = types::Database;
+    type Target = database::Database;
 
-    fn deref(&self) -> &types::Database {
+    fn deref(&self) -> &database::Database {
         &self.state.database
     }
 }
 
 impl DerefMut for Kdbx<Unlocked> {
-    fn deref_mut(&mut self) -> &mut types::Database {
+    fn deref_mut(&mut self) -> &mut database::Database {
         &mut self.state.database
     }
 }
@@ -230,7 +257,7 @@ pub struct Locked {
     /// Minor version of the database file format
     pub(crate) minor_version: u16,
     /// hmac code to verify keys and header integrity
-    pub(crate) hmac: Vec<u8>,
+    pub(crate) hmac: Option<Vec<u8>>,
     /// Encrypted vault data
     pub(crate) encrypted_data: Vec<u8>,
 }
@@ -244,6 +271,14 @@ impl KdbxState for Locked {
         &mut self.header
     }
 
+    fn major_version(&self) -> u16 {
+        self.major_version
+    }
+
+    fn minor_version(&self) -> u16 {
+        self.minor_version
+    }
+
     fn write<W: Write>(&self, mut output: W) -> Result<(), errors::WriteError> {
         let mut header_buf = Vec::new();
         let header_writer = &mut header_buf as &mut dyn Write;
@@ -253,15 +288,17 @@ impl KdbxState for Locked {
         header_writer.write_all(&self.major_version.to_le_bytes())?;
         self.header.write(&mut header_buf)?;
         output.write_all(&header_buf)?;
-        output.write_all(&crypto::sha256(&header_buf))?;
-        output.write_all(&self.hmac)?;
+        if self.major_version >= 4 {
+            output.write_all(&crypto::sha256(&header_buf))?;
+            output.write_all(&self.hmac.as_ref().unwrap())?;
+        }
         output.write_all(&self.encrypted_data)?;
         Ok(())
     }
 }
 
 impl Kdbx<Locked> {
-    fn decrypt_data(
+    fn decrypt_v4(
         &self,
         master_key: &crypto::MasterKey,
     ) -> Result<(header::KdbxInnerHeader, Vec<u8>), errors::UnlockError> {
@@ -275,7 +312,8 @@ impl Kdbx<Locked> {
             &self.state.header.encryption_iv,
             self.state.header.compression_type,
         )?;
-        let inner_header = header::KdbxInnerHeader::read(&mut input_stream)?;
+        let inner_header =
+            header::KdbxInnerHeader::read(&mut input_stream, self.state.major_version)?;
         let mut output_buffer = Vec::new();
         input_stream.read_to_end(&mut output_buffer)?;
         Ok((inner_header, output_buffer))
@@ -285,18 +323,79 @@ impl Kdbx<Locked> {
     ///
     /// If unlock fails, returns the locked kdbx file along with the error
     pub fn unlock(self, key: &crypto::CompositeKey) -> Result<Kdbx<Unlocked>, FailedUnlock> {
+        if self.state.major_version >= 4 {
+            self.unlock_v4(&key)
+        } else {
+            self.unlock_v3(&key)
+        }
+    }
+
+    fn decrypt_v3(
+        &self,
+        master_key: &crypto::MasterKey,
+    ) -> Result<(header::KdbxInnerHeader, Vec<u8>), errors::UnlockError> {
+        let cipher_key = master_key.cipher_key(&self.state.header.master_seed);
+        let mut input_stream = stream::kdbx3_read_stream(
+            &*self.state.encrypted_data,
+            cipher_key,
+            self.state.header.cipher,
+            &self.state.header.encryption_iv,
+            self.state.header.compression_type,
+            self.header().stream_start_bytes.as_ref().unwrap(),
+        )?;
+        let inner_header = header::KdbxInnerHeader::from_legacy_fields(&self.state.header)?;
+        let mut output_buffer = Vec::new();
+        input_stream.read_to_end(&mut output_buffer)?;
+        Ok((inner_header, output_buffer))
+    }
+
+    fn unlock_v3(self, key: &crypto::CompositeKey) -> Result<Kdbx<Unlocked>, FailedUnlock> {
         let composed_key = key.composed();
-        let master_key = match composed_key.master_key(&self.state.header.kdf_params) {
+        let master_key = match composed_key.master_key(&self.header().kdf_params) {
             Ok(master_key) => master_key,
             Err(e) => return Err(FailedUnlock(self, errors::UnlockError::from(e))),
         };
 
+        let parsed = self
+            .decrypt_v3(&master_key)
+            .and_then(|(inner_header, data)| {
+                let mut stream_cipher = inner_header
+                    .inner_stream_cipher
+                    .stream_cipher(inner_header.inner_stream_key.as_ref())?;
+                let parsed = crate::xml::parse_xml(data.as_slice(), stream_cipher.as_mut())?;
+                Ok((inner_header, data, parsed))
+            });
+        match parsed {
+            Ok((inner_header, data, db)) => Ok(Kdbx {
+                state: Unlocked {
+                    inner_header,
+                    header: self.state.header,
+                    major_version: self.state.major_version,
+                    minor_version: self.state.minor_version,
+                    composed_key: Some(composed_key),
+                    master_key: Some(master_key),
+                    database: db,
+                    xml_data: Some(data),
+                },
+            }),
+            Err(e) => Err(FailedUnlock(self, e)),
+        }
+    }
+
+    fn unlock_v4(self, key: &crypto::CompositeKey) -> Result<Kdbx<Unlocked>, FailedUnlock> {
+        let composed_key = key.composed();
+        let master_key = match composed_key.master_key(&self.header().kdf_params) {
+            Ok(master_key) => master_key,
+            Err(e) => return Err(FailedUnlock(self, errors::UnlockError::from(e))),
+        };
         let hmac_key = master_key.hmac_key(&self.state.header.master_seed);
         let header_block_key = hmac_key.block_key(u64::MAX);
 
-        if header_block_key.verify_header_block(&self.state.hmac, &self.state.header_data) {
+        let hmac = self.state.hmac.clone().unwrap();
+
+        if header_block_key.verify_header_block(hmac.as_ref(), &self.state.header_data) {
             let parsed = self
-                .decrypt_data(&master_key)
+                .decrypt_v4(&master_key)
                 .and_then(|(inner_header, data)| {
                     let mut stream_cipher = inner_header
                         .inner_stream_cipher

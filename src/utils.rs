@@ -81,10 +81,6 @@ pub(crate) fn to_hex_string(data: &[u8]) -> String {
 pub struct NullStreamCipher;
 
 impl stream_cipher::StreamCipher for NullStreamCipher {
-    fn encrypt(&mut self, _data: &mut [u8]) {
-        
-    }
-    fn decrypt(&mut self, _data: &mut [u8]) {
-    }
-    
+    fn encrypt(&mut self, _data: &mut [u8]) {}
+    fn decrypt(&mut self, _data: &mut [u8]) {}
 }

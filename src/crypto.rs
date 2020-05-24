@@ -1,5 +1,7 @@
 use crate::binary;
 
+use aes::{block_cipher_trait::generic_array::GenericArray, Aes256};
+use block_modes::{block_padding::ZeroPadding, BlockMode, Ecb};
 use hmac::crypto_mac::MacResult;
 use hmac::{Hmac, Mac};
 use sha2::{Digest, Sha256, Sha512};
@@ -83,6 +85,25 @@ impl ComposedKey {
                     .map_err(|e| KeyGenerationError::KeyGeneration(e.to_string()))?;
 
                 Ok(MasterKey(hash))
+            }
+            binary::KdfParams::Aes { rounds, salt } => {
+                let mut cipher: Ecb<Aes256, ZeroPadding> =
+                    Ecb::new_var(&salt, Default::default()).unwrap();
+                let chunked: Vec<GenericArray<u8, _>> = self
+                    .0
+                    .chunks_exact(16)
+                    .map(|chunk| GenericArray::from_slice(chunk).clone())
+                    .collect();
+                let mut blocks = [chunked[0], chunked[1]];
+                for _ in 0..*rounds {
+                    cipher.encrypt_blocks(&mut blocks);
+                }
+                let mut transformed_hasher = Sha256::new();
+                transformed_hasher.input(blocks[0]);
+                transformed_hasher.input(blocks[1]);
+                let transformed = transformed_hasher.result();
+
+                Ok(MasterKey(transformed.as_slice().to_vec()))
             }
             _ => Ok(MasterKey(Vec::new())),
         }

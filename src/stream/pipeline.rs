@@ -9,8 +9,8 @@ use derive_more::From;
 use twofish::Twofish;
 
 use super::{
-    BlockCipherReader, BlockCipherWriter, BlockCipherWriterExt, HMacReader, HmacWriter,
-    StreamCipherWriterExt,
+    BlockCipherReader, BlockCipherWriter, BlockCipherWriterExt, HMacReader, HashedBlockReader,
+    HmacWriter, StreamCipherWriterExt,
 };
 
 fn block_cipher_read_stream<C, R>(
@@ -30,6 +30,70 @@ where
     })
 }
 
+pub(crate) fn decryption_stream<'a, R: io::Read + 'a>(
+    inner: R,
+    cipher_key: crypto::CipherKey,
+    cipher: binary::Cipher,
+    iv: &[u8],
+) -> io::Result<Box<dyn io::Read + 'a>> {
+    let stream: Box<dyn io::Read> = match cipher {
+        binary::Cipher::Aes256 => Box::new(block_cipher_read_stream::<Aes256, _>(
+            inner, cipher_key, iv,
+        )?),
+        binary::Cipher::Aes128 => Box::new(block_cipher_read_stream::<Aes128, _>(
+            inner, cipher_key, iv,
+        )?),
+        binary::Cipher::TwoFish => Box::new(block_cipher_read_stream::<Twofish, _>(
+            inner, cipher_key, iv,
+        )?),
+        binary::Cipher::ChaCha20 => {
+            let cipher = ChaCha20::new_var(&cipher_key.0, &iv).unwrap();
+            Box::new(super::StreamCipherReader::new(inner, cipher))
+        }
+        _ => {
+            return Err(io::Error::new(
+                io::ErrorKind::InvalidInput,
+                format!("Unsupported cipher setting {:?}", cipher),
+            ))
+        }
+    };
+
+    Ok(stream)
+}
+
+pub(crate) fn kdbx3_read_stream<'a, R: io::Read + 'a>(
+    inner: R,
+    cipher_key: crypto::CipherKey,
+    cipher: binary::Cipher,
+    iv: &[u8],
+    compression: binary::CompressionType,
+    expected_start_bytes: &[u8],
+) -> io::Result<Box<dyn io::Read + 'a>> {
+    let buffered = io::BufReader::new(inner);
+    let mut decrypted = decryption_stream(buffered, cipher_key, cipher, iv)?;
+    let mut start_bytes = [0u8; 32];
+    decrypted.read_exact(&mut start_bytes)?;
+    if &start_bytes != expected_start_bytes {
+        return Err(io::Error::new(
+            io::ErrorKind::InvalidData,
+            "Could not validate start bytes",
+        ));
+    }
+    let verified = HashedBlockReader::new(decrypted);
+    let decompressed: Box<dyn io::Read> = match compression {
+        binary::CompressionType::None => Box::new(verified),
+        binary::CompressionType::Gzip => Box::new(libflate::gzip::Decoder::new(verified)?),
+        binary::CompressionType::Unknown(_) => {
+            return Err(io::Error::new(
+                io::ErrorKind::InvalidInput,
+                format!("Unsupported compression type {:?}", compression),
+            ))
+        }
+    };
+
+    Ok(decompressed)
+}
+
 pub(crate) fn kdbx4_read_stream<'a, R: io::Read + 'a>(
     inner: R,
     hmac_key: crypto::HmacKey,
@@ -40,27 +104,7 @@ pub(crate) fn kdbx4_read_stream<'a, R: io::Read + 'a>(
 ) -> io::Result<Box<dyn io::Read + 'a>> {
     let buffered = io::BufReader::new(inner);
     let verified = HMacReader::new(buffered, hmac_key);
-    let decrypted: Box<dyn io::Read> = match cipher {
-        binary::Cipher::Aes256 => Box::new(block_cipher_read_stream::<Aes256, _>(
-            verified, cipher_key, iv,
-        )?),
-        binary::Cipher::Aes128 => Box::new(block_cipher_read_stream::<Aes128, _>(
-            verified, cipher_key, iv,
-        )?),
-        binary::Cipher::TwoFish => Box::new(block_cipher_read_stream::<Twofish, _>(
-            verified, cipher_key, iv,
-        )?),
-        binary::Cipher::ChaCha20 => {
-            let cipher = ChaCha20::new_var(&cipher_key.0, &iv).unwrap();
-            Box::new(super::StreamCipherReader::new(verified, cipher))
-        }
-        _ => {
-            return Err(io::Error::new(
-                io::ErrorKind::InvalidInput,
-                format!("Unsupported cipher setting {:?}", cipher),
-            ))
-        }
-    };
+    let decrypted = decryption_stream(verified, cipher_key, cipher, iv)?;
     let decompressed: Box<dyn io::Read> = match compression {
         binary::CompressionType::None => Box::new(decrypted),
         binary::CompressionType::Gzip => Box::new(libflate::gzip::Decoder::new(decrypted)?),

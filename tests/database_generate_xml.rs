@@ -34,21 +34,23 @@ fn generate_xml() -> Result<(), kdbx_rs::Error> {
     db.set_name("BarName");
     db.set_description("BazDesc");
     let mut group = Group::default();
-    group.name = "FooGroup".to_string();
-    group.uuid = Uuid::from_u128(0x12345678);
+    group.set_name("FooGroup");
+    group.set_uuid(Uuid::from_u128(0x12345678));
     group.times = sample_times();
     let mut entry = Entry::default();
     entry.set_title("Bar");
     entry.set_password("kdbxrs");
-    entry.uuid = Uuid::from_u128(0x654321);
+    entry.set_uuid(Uuid::from_u128(0x654321));
     entry.times = sample_times();
-    group.entries.push(entry);
+    group.add_entry(entry);
     db.groups.push(group);
 
     let mut output_buffer = Vec::new();
 
     let key = vec![0xA0; 16];
-    let mut stream_cipher = InnerStreamCipherAlgorithm::ChaCha20.stream_cipher(&key).unwrap();
+    let mut stream_cipher = InnerStreamCipherAlgorithm::ChaCha20
+        .stream_cipher(&key)
+        .unwrap();
     write_xml(&mut output_buffer, &db, stream_cipher.as_mut())?;
     let xml_string = String::from_utf8(output_buffer).unwrap();
     assert_eq!(expected_xml_string, xml_string);

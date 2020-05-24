@@ -18,10 +18,7 @@ pub enum InnerStreamError {
 
 impl InnerStreamCipherAlgorithm {
     /// Create a stream cipher instance for this algorithm
-    pub fn stream_cipher(
-        self,
-        key: &[u8],
-    ) -> Result<Box<dyn StreamCipher>, InnerStreamError> {
+    pub fn stream_cipher(self, key: &[u8]) -> Result<Box<dyn StreamCipher>, InnerStreamError> {
         match self {
             InnerStreamCipherAlgorithm::ChaCha20 => {
                 let iv = Sha512::digest(key);

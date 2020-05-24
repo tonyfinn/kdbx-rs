@@ -1,8 +1,8 @@
 use super::decoders::{encode_datetime, encode_uuid};
-use crate::types::{Database, Entry, Field, Group, MemoryProtection, Meta, Times, Value};
+use crate::database::{Database, Entry, Field, Group, MemoryProtection, Meta, Times, Value};
 use std::io::Write;
-use thiserror::Error;
 use stream_cipher::StreamCipher;
+use thiserror::Error;
 use xml::writer::events::XmlEvent;
 use xml::writer::EventWriter as XmlWriter;
 
@@ -34,7 +34,12 @@ fn write_string_tag<W: Write, S: AsRef<str>>(
     Ok(())
 }
 
-fn write_field<W: Write, S: StreamCipher + ?Sized>(writer: &mut XmlWriter<W>, wrapper: &str, field: &Field, stream_cipher: &mut S) -> Result<()> {
+fn write_field<W: Write, S: StreamCipher + ?Sized>(
+    writer: &mut XmlWriter<W>,
+    wrapper: &str,
+    field: &Field,
+    stream_cipher: &mut S,
+) -> Result<()> {
     writer.write(XmlEvent::start_element(wrapper))?;
     write_string_tag(writer, "Key", &field.key)?;
     match &field.value {
@@ -70,7 +75,11 @@ fn write_memory_protection<W: Write>(
     Ok(())
 }
 
-fn write_meta<W: Write, S: StreamCipher + ?Sized>(writer: &mut XmlWriter<W>, meta: &Meta, stream_cipher: &mut S) -> Result<()> {
+fn write_meta<W: Write, S: StreamCipher + ?Sized>(
+    writer: &mut XmlWriter<W>,
+    meta: &Meta,
+    stream_cipher: &mut S,
+) -> Result<()> {
     writer.write(XmlEvent::start_element("Meta"))?;
     write_string_tag(writer, "Generator", "kdbx-rs")?;
     write_string_tag(writer, "DatabaseName", &meta.database_name)?;
@@ -110,16 +119,20 @@ fn write_times<W: Write>(writer: &mut XmlWriter<W>, times: &Times) -> Result<()>
     Ok(())
 }
 
-fn write_entry<W: Write, S: StreamCipher + ?Sized>(writer: &mut XmlWriter<W>, entry: &Entry, stream_cipher: &mut S) -> Result<()> {
+fn write_entry<W: Write, S: StreamCipher + ?Sized>(
+    writer: &mut XmlWriter<W>,
+    entry: &Entry,
+    stream_cipher: &mut S,
+) -> Result<()> {
     writer.write(XmlEvent::start_element("Entry"))?;
     write_string_tag(writer, "UUID", &encode_uuid(&entry.uuid))?;
     write_times(writer, &entry.times)?;
     for field in &entry.fields {
         write_field(writer, "String", field, stream_cipher)?;
     }
-    if !entry.history.is_empty() {
+    if entry.history.len() > 0 {
         writer.write(XmlEvent::start_element("History"))?;
-        for old_entry in &entry.history {
+        for old_entry in entry.history.entries() {
             write_entry(writer, old_entry, stream_cipher)?;
         }
         writer.write(XmlEvent::end_element())?;
@@ -128,15 +141,19 @@ fn write_entry<W: Write, S: StreamCipher + ?Sized>(writer: &mut XmlWriter<W>, en
     Ok(())
 }
 
-fn write_group<W: Write, S: StreamCipher + ?Sized>(writer: &mut XmlWriter<W>, group: &Group, stream_cipher: &mut S) -> Result<()> {
+fn write_group<W: Write, S: StreamCipher + ?Sized>(
+    writer: &mut XmlWriter<W>,
+    group: &Group,
+    stream_cipher: &mut S,
+) -> Result<()> {
     writer.write(XmlEvent::start_element("Group"))?;
     write_string_tag(writer, "UUID", encode_uuid(&group.uuid))?;
     write_string_tag(writer, "Name", &group.name)?;
     write_times(writer, &group.times)?;
-    for entry in &group.entries {
+    for entry in group.entries() {
         write_entry(writer, &entry, stream_cipher)?;
     }
-    for group in &group.children {
+    for group in group.groups() {
         write_group(writer, &group, stream_cipher)?;
     }
     writer.write(XmlEvent::end_element())?;
@@ -149,7 +166,11 @@ fn write_group<W: Write, S: StreamCipher + ?Sized>(writer: &mut XmlWriter<W>, gr
 /// [`InnerStreamCipherAlgorithm::stream_cipher`][crate::binary::InnerStreamCipherAlgorithm#stream_cipher]
 /// if the XML contains encrypted data, or [`utils::NullStreamCipher`][crate::utils::NullStreamCipher]
 /// if it does not (such as an export from the official client).
-pub fn write_xml<W: Write, S: StreamCipher + ?Sized>(output: W, database: &Database, stream_cipher: &mut S) -> Result<()> {
+pub fn write_xml<W: Write, S: StreamCipher + ?Sized>(
+    output: W,
+    database: &Database,
+    stream_cipher: &mut S,
+) -> Result<()> {
     let config = xml::EmitterConfig::default()
         .perform_indent(true)
         .indent_string("\t");

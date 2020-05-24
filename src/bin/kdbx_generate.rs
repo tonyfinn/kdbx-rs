@@ -33,13 +33,13 @@ fn main() -> Result<(), Error> {
     db.meta.database_name = "BarName".to_string();
     db.meta.database_description = "BazDesc".to_string();
     let mut group = Group::default();
-    group.name = "Root".to_string();
-    group.uuid = Uuid::from_u128(0x1234_5678);
+    group.set_name("Root");
+    group.set_uuid(Uuid::from_u128(0x1234_5678));
     group.times = sample_times();
     let mut entry = Entry::default();
     entry.set_title("Bar");
     entry.set_password("kdbxrs");
-    entry.uuid = Uuid::from_u128(0x0065_4321);
+    entry.set_uuid(Uuid::from_u128(0x0065_4321));
     entry.times = sample_times();
     group.entries.push(entry);
     db.groups.push(group);

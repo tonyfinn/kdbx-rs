@@ -42,6 +42,7 @@ fn main() -> Result<(), kdbx_rs::Error> {
     }
     let kdbx = kdbx_rs::open(&args[1])?;
     let header = kdbx.header();
+    println!("Version: {}.{}", kdbx.major_version(), kdbx.minor_version());
     println!("Cipher: {:?}", header.cipher);
     println!("Compression: {:?}", header.compression_type);
     print_kdf(&header.kdf_params);

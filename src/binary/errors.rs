@@ -28,8 +28,11 @@ pub enum OpenError {
 /// Errors encountered unlocking a encrypted database
 pub enum UnlockError {
     /// The HMAC signature check failed. This indicates an invalid password or corrupt DB
-    #[error("Header validation failed - wrong password or corrupt database")]
+    #[error("Header HMAC validation failed - wrong password or corrupt database")]
     HmacInvalid,
+    /// The start bytes check failed. This indicates an invalid password or corrupt DB
+    #[error("Header start validation failed - wrong password or corrupt database")]
+    StartBytesInvalid,
     /// There was some error generating the keys, likely incorrect or unsupported KDF options
     #[error("Key generation failed - {0}")]
     KeyGen(#[from] crypto::KeyGenerationError),

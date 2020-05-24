@@ -170,13 +170,20 @@ where
         }
     }
 
-    pub(crate) fn read_one_header(&mut self) -> Result<HeaderField<T>> {
+    pub(crate) fn read_one_header(&mut self, major_version: u16) -> Result<HeaderField<T>> {
         let mut ty_buffer = [0u8];
         self.reader.read_exact(&mut ty_buffer)?;
         let ty = T::from(ty_buffer[0]);
-        let mut len_buffer = [0u8; 4];
-        self.reader.read_exact(&mut len_buffer)?;
-        let len = u32::from_le_bytes(len_buffer.clone());
+
+        let len = if major_version >= 4 {
+            let mut len_buffer = [0u8; 4];
+            self.reader.read_exact(&mut len_buffer)?;
+            u32::from_le_bytes(len_buffer.clone())
+        } else {
+            let mut len_buffer = [0u8; 2];
+            self.reader.read_exact(&mut len_buffer)?;
+            u16::from_le_bytes(len_buffer.clone()) as u32
+        };
         let mut header_buffer = utils::buffer(len as usize);
         self.reader.read_exact(&mut header_buffer)?;
 
@@ -186,12 +193,12 @@ where
         })
     }
 
-    pub(crate) fn read_all_headers(&mut self) -> Result<Vec<HeaderField<T>>> {
+    pub(crate) fn read_all_headers(&mut self, major_version: u16) -> Result<Vec<HeaderField<T>>> {
         let mut headers = Vec::new();
-        let mut header = self.read_one_header()?;
+        let mut header = self.read_one_header(major_version)?;
         while !header.ty.is_final() {
             headers.push(header);
-            header = self.read_one_header()?;
+            header = self.read_one_header(major_version)?;
         }
 
         Ok(headers)
@@ -203,6 +210,7 @@ pub struct KdbxHeaderBuilder {
     pub cipher: Option<header_fields::Cipher>,
     pub kdf_params: Option<header_fields::KdfParams>,
     pub compression_type: Option<header_fields::CompressionType>,
+    pub stream_start_bytes: Option<Vec<u8>>,
     pub other_headers: Vec<HeaderField<OuterHeaderId>>,
     pub master_seed: Option<Vec<u8>>,
     pub encryption_iv: Option<Vec<u8>>,
@@ -219,6 +227,9 @@ impl KdbxHeaderBuilder {
                     })?;
 
                 self.cipher = Some(cipher);
+            }
+            OuterHeaderId::StreamStartBytes => {
+                self.stream_start_bytes = Some(header.data);
             }
             OuterHeaderId::KdfParameters => {
                 self.kdf_params = match variant_dict::parse_variant_dict(&*header.data) {
@@ -255,7 +266,34 @@ impl KdbxHeaderBuilder {
         Ok(())
     }
 
-    fn build(self) -> Result<KdbxHeader> {
+    fn get_kdf_params(&mut self) -> Option<header_fields::KdfParams> {
+        if self.kdf_params.is_some() {
+            self.kdf_params.take()
+        } else {
+            let rounds = self
+                .other_headers
+                .iter()
+                .find(|h| h.ty == OuterHeaderId::LegacyTransformRounds)
+                .map(|h| {
+                    let mut buf = [0u8; 8];
+                    buf.clone_from_slice(&h.data[0..8]);
+                    u64::from_le_bytes(buf)
+                });
+            let seed = self
+                .other_headers
+                .iter()
+                .find(|h| h.ty == OuterHeaderId::LegacyTransformSeed)
+                .map(|h| h.data.clone());
+
+            match (rounds, seed) {
+                (Some(r), Some(s)) => Some(header_fields::KdfParams::Aes { rounds: r, salt: s }),
+                _ => None,
+            }
+        }
+    }
+
+    fn build(mut self) -> Result<KdbxHeader> {
+        let kdf_params = self.get_kdf_params();
         Ok(KdbxHeader {
             cipher: self
                 .cipher
@@ -269,9 +307,9 @@ impl KdbxHeaderBuilder {
             encryption_iv: self
                 .encryption_iv
                 .ok_or_else(|| Error::MissingRequiredField(OuterHeaderId::EncryptionIv))?,
-            kdf_params: self
-                .kdf_params
+            kdf_params: kdf_params
                 .ok_or_else(|| Error::MissingRequiredField(OuterHeaderId::KdfParameters))?,
+            stream_start_bytes: self.stream_start_bytes,
             other_headers: self.other_headers,
         })
     }
@@ -290,6 +328,8 @@ pub struct KdbxHeader {
     pub kdf_params: header_fields::KdfParams,
     /// Compression applied prior to encryption
     pub compression_type: header_fields::CompressionType,
+    /// First 32 bytes, used to check kdbx3 archives
+    pub stream_start_bytes: Option<Vec<u8>>,
     /// Custom and unrecognized header types
     pub other_headers: Vec<HeaderField<OuterHeaderId>>,
     /// Master seed used to make crypto keys DB specific
@@ -329,6 +369,7 @@ impl KdbxHeader {
             },
             other_headers: Vec::new(),
             compression_type: super::CompressionType::None,
+            stream_start_bytes: None,
             master_seed,
             encryption_iv,
         }
@@ -336,14 +377,19 @@ impl KdbxHeader {
 
     pub(crate) fn read<R: Read>(
         mut caching_reader: utils::CachingReader<R>,
+        major_version: u16,
     ) -> Result<(KdbxHeader, Vec<u8>)> {
         let mut header_builder = KdbxHeaderBuilder::default();
-        let headers = HeaderParser::new(&mut caching_reader).read_all_headers()?;
+        let headers = HeaderParser::new(&mut caching_reader).read_all_headers(major_version)?;
         for header in headers {
             header_builder.add_header(header)?;
         }
 
         let (header_bin, input) = caching_reader.into_inner();
+
+        if major_version < 4 {
+            return Ok((header_builder.build()?, header_bin));
+        }
 
         let mut sha = utils::buffer(Sha256::output_size());
         input.read_exact(&mut sha)?;
@@ -434,6 +480,31 @@ pub struct KdbxInnerHeader {
 }
 
 impl KdbxInnerHeader {
+    pub(crate) fn from_legacy_fields(header: &KdbxHeader) -> Result<KdbxInnerHeader> {
+        let cipher = &header
+            .other_headers
+            .iter()
+            .find(|h| h.ty == OuterHeaderId::InnerRandomStreamId)
+            .ok_or_else(|| Error::MissingRequiredField(OuterHeaderId::InnerRandomStreamId))?
+            .data;
+        let key = header
+            .other_headers
+            .iter()
+            .find(|h| h.ty == OuterHeaderId::ProtectedStreamKey)
+            .ok_or_else(|| Error::MissingRequiredField(OuterHeaderId::ProtectedStreamKey))?
+            .data
+            .clone();
+        let mut cipher_id_buf = [0u8; 4];
+        cipher_id_buf.clone_from_slice(&cipher[0..4]);
+        let cipher_id = u32::from_le_bytes(cipher_id_buf);
+
+        Ok(KdbxInnerHeader {
+            inner_stream_cipher: cipher_id.into(),
+            inner_stream_key: key.into(),
+            other_headers: Vec::new(),
+        })
+    }
+
     /// Returns an inner header setup for a default stream cipher and OS random keys
     ///
     /// Currently the default stream cipher is ChaCha20
@@ -456,9 +527,9 @@ impl KdbxInnerHeader {
         }
     }
 
-    pub(crate) fn read<R: Read>(reader: &mut R) -> Result<KdbxInnerHeader> {
+    pub(crate) fn read<R: Read>(reader: &mut R, major_version: u16) -> Result<KdbxInnerHeader> {
         let mut header_builder = KdbxInnerHeaderBuilder::default();
-        let headers = HeaderParser::new(reader).read_all_headers()?;
+        let headers = HeaderParser::new(reader).read_all_headers(major_version)?;
         for header in headers {
             header_builder.add_header(header)?;
         }

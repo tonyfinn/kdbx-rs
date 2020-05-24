@@ -1,4 +1,4 @@
-use chrono::{Duration, NaiveDate, NaiveDateTime};
+use chrono::{DateTime, Duration, NaiveDate, NaiveDateTime};
 use uuid::Uuid;
 
 pub fn keepass_epoch() -> NaiveDateTime {
@@ -10,7 +10,7 @@ pub(crate) fn decode_uuid(b64uuid: &str) -> Option<Uuid> {
     Uuid::from_slice(&decoded).ok()
 }
 
-pub(crate) fn decode_datetime(b64date: &str) -> Option<NaiveDateTime> {
+pub(crate) fn decode_datetime_b64(b64date: &str) -> Option<NaiveDateTime> {
     let decoded = base64::decode(b64date).ok()?;
     let mut bytes = [0u8; 8];
     for i in 0..usize::min(bytes.len(), decoded.len()) {
@@ -19,6 +19,15 @@ pub(crate) fn decode_datetime(b64date: &str) -> Option<NaiveDateTime> {
     let timestamp = Duration::seconds(i64::from_le_bytes(bytes));
 
     keepass_epoch().checked_add_signed(timestamp)
+}
+
+pub(crate) fn decode_datetime(strdate: &str) -> Option<NaiveDateTime> {
+    if strdate.contains("-") {
+        let dt = DateTime::parse_from_rfc3339(strdate).ok()?;
+        Some(dt.naive_utc())
+    } else {
+        decode_datetime_b64(strdate)
+    }
 }
 
 pub(crate) fn encode_uuid(uuid: &Uuid) -> String {

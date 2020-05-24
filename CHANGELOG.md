@@ -7,8 +7,19 @@
   * `Group::recursive_entries()` / `Group::recursive_entries_mut()` for iterating
     through all entries in a group and its child groups
   * `utils::NullStreamCipher` to parse/write XML files without inner encryption
+  * `Group`
+    * `recursive_entries()` / `recursive_entries_mut()` for iterating
+      through all entries in a group and its child groups
+    * `find_entry(Fn(&Entry) -> bool)` and `find_entry_mut(Fn(&Entry) -> bool)`
+      for finding an entry recursively
+    * `find_group(Fn(&Group) -> bool)` and `find_group_mut(Fn(&Group) -> bool)`
+      for finding an entry recursively
+  * Many group APIs are mirrored on `Database` for operating on the root group.
+* Actually support AES KDF
+* Read only support for KDBX 3.1
 * Removed APIs
   * `kdbx_rs::xml::default_stream_cipher` - use `NullStreamCipher` or `InnerStreamCipherAlgorithm::stream_cipher()`
+  * Struct fields on many database types are now hidden, use accessor fields instead
 
 ## 0.1.2
 

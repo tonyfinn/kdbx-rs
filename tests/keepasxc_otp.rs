@@ -16,7 +16,10 @@ fn keepassxc_otp_read_secret() -> Result<(), kdbx_rs::Error> {
     let key = kdbx_rs::CompositeKey::from_password("kdbxrs");
     let db = db.unlock(&key)?;
     let xml = db.database();
-    assert_eq!("ABCDEFGHIJKLMNOP", xml.groups[0].entries[0].otp().unwrap().secret().unwrap());
+    assert_eq!(
+        "ABCDEFGHIJKLMNOP",
+        xml.groups[0].entries[0].otp().unwrap().secret().unwrap()
+    );
 
     Ok(())
 }

@@ -22,7 +22,7 @@ fn round_trip() -> Result<(), kdbx_rs::Error> {
     db.meta.database_name = DATABASE_NAME.to_string();
     db.meta.database_description = DATABASE_DESC.to_string();
     let mut group = Group::default();
-    group.name = GROUP_NAME.to_string();
+    group.set_name(GROUP_NAME);
     let group_times = group.times.clone();
     let mut entry = Entry::default();
     entry.add_field(Field::new("Title", ENTRY_NAME));
@@ -42,7 +42,7 @@ fn round_trip() -> Result<(), kdbx_rs::Error> {
     assert_eq!(unlocked.meta().database_name, DATABASE_NAME);
     assert_eq!(unlocked.meta().database_description, DATABASE_DESC);
     let root = unlocked.root().unwrap();
-    assert_eq!(root.name, GROUP_NAME);
+    assert_eq!(root.name(), GROUP_NAME);
     assert_eq!(root.entries[0].title().unwrap(), ENTRY_NAME);
     assert_eq!(root.entries[0].password().unwrap(), ENTRY_PASSWORD);
     assert_eq!(root.times, group_times);

@@ -18,23 +18,26 @@ fn kdbx4_parsing() -> Result<(), kdbx_rs::Error> {
     let xml = db.database();
 
     assert_eq!(1, xml.groups.len());
-    assert_eq!("Root", xml.groups[0].name);
+
+    let root = xml.root().unwrap();
+    assert_eq!("Root", root.name());
     assert_eq!(
         "cd4233f1-fac2-4272-b309-3c5e7df90097",
-        xml.groups[0].uuid.to_string()
+        root.uuid().to_string()
     );
-    assert_eq!(1, xml.groups[0].entries.len());
+    assert_eq!(1, root.entries.len());
+    let entry = &root.entries[0];
     assert_eq!(
         "d5870a13-f968-41c5-a233-69b7bc86a628",
-        xml.groups[0].entries[0].uuid.to_string()
+        entry.uuid().to_string()
     );
-    assert_eq!(Some("password2"), xml.groups[0].entries[0].password());
-    assert_eq!(1, xml.groups[0].entries[0].history.len());
+    assert_eq!("password2", entry.password().unwrap());
+    let history = entry.history();
+    assert_eq!(1, history.len());
     assert_eq!(
         "d5870a13-f968-41c5-a233-69b7bc86a628",
-        xml.groups[0].entries[0].history[0].uuid.to_string()
+        history[0].uuid().to_string()
     );
-
     Ok(())
 }
 
@@ -54,20 +57,25 @@ fn kdbx4_parsing_twofish() -> Result<(), kdbx_rs::Error> {
     let xml = db.database();
 
     assert_eq!(1, xml.groups.len());
-    assert_eq!("Root", xml.groups[0].name);
+
+    let root = xml.root().unwrap();
+    assert_eq!("Root", root.name());
     assert_eq!(
         "cd4233f1-fac2-4272-b309-3c5e7df90097",
-        xml.groups[0].uuid.to_string()
+        root.uuid().to_string()
     );
-    assert_eq!(1, xml.groups[0].entries.len());
+    assert_eq!(1, root.entries.len());
+    let entry = &root.entries[0];
     assert_eq!(
         "d5870a13-f968-41c5-a233-69b7bc86a628",
-        xml.groups[0].entries[0].uuid.to_string()
+        entry.uuid().to_string()
     );
-    assert_eq!(1, xml.groups[0].entries[0].history.len());
+    assert_eq!("password2", entry.password().unwrap());
+    let history = entry.history();
+    assert_eq!(1, history.len());
     assert_eq!(
         "d5870a13-f968-41c5-a233-69b7bc86a628",
-        xml.groups[0].entries[0].history[0].uuid.to_string()
+        history[0].uuid().to_string()
     );
 
     Ok(())
@@ -89,20 +97,25 @@ fn kdbx4_parsing_chacha20() -> Result<(), kdbx_rs::Error> {
     let xml = db.database();
 
     assert_eq!(1, xml.groups.len());
-    assert_eq!("Root", xml.groups[0].name);
+
+    let root = xml.root().unwrap();
+    assert_eq!("Root", root.name());
     assert_eq!(
         "cd4233f1-fac2-4272-b309-3c5e7df90097",
-        xml.groups[0].uuid.to_string()
+        root.uuid().to_string()
     );
-    assert_eq!(1, xml.groups[0].entries.len());
+    assert_eq!(1, root.entries.len());
+    let entry = &root.entries[0];
     assert_eq!(
         "d5870a13-f968-41c5-a233-69b7bc86a628",
-        xml.groups[0].entries[0].uuid.to_string()
+        entry.uuid().to_string()
     );
-    assert_eq!(1, xml.groups[0].entries[0].history.len());
+    assert_eq!("password2", entry.password().unwrap());
+    let history = entry.history();
+    assert_eq!(1, history.len());
     assert_eq!(
         "d5870a13-f968-41c5-a233-69b7bc86a628",
-        xml.groups[0].entries[0].history[0].uuid.to_string()
+        history[0].uuid().to_string()
     );
 
     Ok(())

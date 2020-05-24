@@ -79,6 +79,11 @@
 //! # }
 //! ```
 //!
+//! # Database operations
+//!
+//! See the [`database`][crate::database] module-level documentation for examples
+//! of database operations.
+//!
 //! [`CompositeKey`]: crate::CompositeKey
 //! [`Database`]: crate::Database
 //! [`Database::default()`]: crate::Database#method.default
@@ -92,17 +97,13 @@
 
 pub mod binary;
 mod crypto;
+pub mod database;
 pub mod errors;
 mod stream;
-mod types;
 pub mod utils;
 pub mod xml;
 
-pub use crate::types::Database;
-/// Password database datatypes
-pub mod database {
-    pub use crate::types::*;
-}
+pub use crate::database::Database;
 pub use binary::{from_reader, open, Kdbx};
 pub use crypto::CompositeKey;
 pub use errors::Error;
