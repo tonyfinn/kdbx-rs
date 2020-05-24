@@ -1,5 +1,10 @@
 # Changelog
 
+## 0.2.1
+
+* Actually remove APIs listed as removed in 0.2.0
+* Fix off by one error in datetime parsing of years
+
 ## 0.2.0
 
 * Add support for writing protected values
