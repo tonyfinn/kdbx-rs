@@ -1,5 +1,9 @@
 # Changelog
 
+## 0.2.2
+
+* Documentation additions/corrections
+
 ## 0.2.1
 
 * Actually remove APIs listed as removed in 0.2.0

@@ -37,11 +37,13 @@ pub fn decode_datetime(strdate: &str) -> Option<NaiveDateTime> {
     }
 }
 
-pub(crate) fn encode_uuid(uuid: Uuid) -> String {
+/// Encode a UUID for a Keepass XML file for kdbx4
+pub fn encode_uuid(uuid: Uuid) -> String {
     base64::encode(uuid.as_bytes())
 }
 
-pub(crate) fn encode_datetime(date: NaiveDateTime) -> String {
+/// Encode a datetime for a Keepass XML file for kdbx4
+pub fn encode_datetime(date: NaiveDateTime) -> String {
     let epoch_seconds = date.signed_duration_since(keepass_epoch()).num_seconds();
     base64::encode(epoch_seconds.to_le_bytes())
 }

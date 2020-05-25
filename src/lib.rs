@@ -1,11 +1,11 @@
 #![deny(missing_docs)]
 
-//! Module to read and write KDBX (Keepass 2) database files.
+//! Module to read and write KDBX (Keepass 2) databases.
 //!
 //! The main types in this crate are:
 //!
 //! * [`Database`] which represents a password database
-//! * [`Kdbx`] which represents a database file, including encryption options
+//! * [`Kdbx`] which represents a database archive, including encryption options
 //!
 //! # Opening a database
 //!

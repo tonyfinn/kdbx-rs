@@ -178,7 +178,7 @@ When the AES KDF is used, the following parameters are read from the KDF paramet
 * "S" - The key used for the cipher
 
 For KDBX 3.1, these are read from the `TransformRounds` / `TransformSeed` parameters
-in the outer head instead.
+in the outer header instead.
 
 The key is derived as follows:
 
@@ -192,7 +192,7 @@ The key is derived as follows:
 #### Cipher Key
 
 The cipher key is used for encrypting/decrypting the database. It is calculated as 
-`sha512(master seed, master key)`.
+`sha256(master seed, master key)`.
 
 #### HMAC Key - KDBX 4+
 

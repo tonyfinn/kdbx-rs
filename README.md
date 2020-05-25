@@ -6,7 +6,7 @@ Library for reading and writing KDBX libraries from Rust.
 
 ## Example code
 
-Obtaining the first password in the password database:
+Obtaining an entry from the password database:
 
 ```rust
 use kdbx_rs::{self, CompositeKey, Error};
@@ -16,7 +16,11 @@ fn main() -> Result<(), Error> {
     let key = CompositeKey::from_password("kdbxrs");
     let unlocked = kdbx.unlock(&key)?;
 
-    println!(unlocked.root().entries[0].password())
+    let password = unlocked.find_entry(|e| e.url() == Some("https://example.com"))
+        .unwrap()
+        .password();
+
+    println!(password);
     Ok(())
 }
 ```
