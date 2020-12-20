@@ -7,9 +7,9 @@ use std::path::Path;
 
 /// Read a database from a input stream
 ///
-/// The database starts locked, use [`KdbxDatabase.unlock`] to unlock
+/// The database starts locked, use [`Kdbx.unlock`] to unlock
 ///
-/// [`KdbxDatabase.unlock`]: ./struct.KdbxDatabase.html#method.unlock
+/// [`Kdbx.unlock`]: ./struct.Kdbx.html#method.unlock
 pub fn from_reader<R: Read>(mut input: R) -> Result<Kdbx<Locked>, errors::OpenError> {
     let mut caching_reader = utils::CachingReader::new(&mut input);
     let mut buffer = [0u8; 4];
@@ -59,9 +59,9 @@ pub fn from_reader<R: Read>(mut input: R) -> Result<Kdbx<Locked>, errors::OpenEr
 
 /// Read a database from a given path
 ///
-/// The database starts locked, use [`KdbxDatabase.unlock`] to unlock
+/// The database starts locked, use [`Kdbx.unlock`] to unlock
 ///
-/// [`KdbxDatabase.unlock`]: ./struct.KdbxDatabase.html#method.unlock
+/// [`Kdbx.unlock`]: ./struct.Kdbx.html#method.unlock
 pub fn open<P: AsRef<Path>>(path: P) -> Result<Kdbx<Locked>, errors::OpenError> {
     let path = path.as_ref();
     let mut file = File::open(path)?;

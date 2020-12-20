@@ -10,8 +10,8 @@ pub enum OpenError {
     /// Keepass database magic number missing
     #[error("Unsupported file type - not a keepass database")]
     NonKeepassFormat,
-    /// Second header magic number is not that for kdbx (possibly kdb)
-    #[error("Unsupported file type - not kdbx")]
+    /// Second header magic number is not that of the keepass database format being opened
+    #[error("Incorrect keepass database type")]
     UnsupportedFileFormat,
     /// The KDBX version is not v3 or v4
     #[error("Unsupported kdbx version {0}")]

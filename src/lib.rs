@@ -103,6 +103,11 @@ mod stream;
 pub mod utils;
 pub mod xml;
 
+/// Tools for dealing with Keepass 1 archives
+pub mod kdb {
+    pub use crate::binary::kdb::{from_reader, Kdb, Locked, Unlocked};
+}
+
 pub use crate::database::Database;
 pub use binary::{from_reader, open, Kdbx};
 pub use crypto::CompositeKey;
