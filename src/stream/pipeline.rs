@@ -2,9 +2,13 @@ use crate::binary;
 use crate::crypto;
 use std::io;
 
-use aes::block_cipher_trait::BlockCipher;
 use aes::{Aes128, Aes256};
-use chacha20::{stream_cipher::NewStreamCipher, ChaCha20};
+use chacha20::ChaCha20;
+use cipher::BlockCipher;
+use cipher::BlockDecrypt;
+use cipher::BlockEncrypt;
+use cipher::KeyInit;
+use cipher::KeyIvInit;
 use derive_more::From;
 use twofish::Twofish;
 
@@ -19,7 +23,7 @@ fn block_cipher_read_stream<C, R>(
     iv: &[u8],
 ) -> io::Result<BlockCipherReader<C, R>>
 where
-    C: BlockCipher,
+    C: BlockCipher + BlockDecrypt + KeyInit,
     R: io::Read,
 {
     BlockCipherReader::<C, _>::wrap(inner, key, iv).map_err(|_| {
@@ -47,7 +51,7 @@ pub(crate) fn decryption_stream<'a, R: io::Read + 'a>(
             inner, cipher_key, iv,
         )?),
         binary::Cipher::ChaCha20 => {
-            let cipher = ChaCha20::new_var(&cipher_key.0, &iv).unwrap();
+            let cipher = ChaCha20::new_from_slices(&cipher_key.0, &iv).unwrap();
             Box::new(super::StreamCipherReader::new(inner, cipher))
         }
         _ => {
@@ -211,7 +215,7 @@ fn block_cipher_write_stream<'a, 'b, C, W>(
 ) -> io::Result<EncryptWrite<'a, W>>
 where
     W: io::Write,
-    C: BlockCipher + 'static,
+    C: BlockCipher + BlockEncrypt + KeyInit + 'static,
 {
     let writer = BlockCipherWriter::<C, _>::wrap(inner, key, iv).map_err(|_| {
         io::Error::new(
@@ -239,7 +243,7 @@ pub(crate) fn kdbx4_write_stream<'a, W: 'a + io::Write>(
             block_cipher_write_stream::<Twofish, _>(verified, cipher_key, iv)?
         }
         binary::Cipher::ChaCha20 => {
-            let cipher = ChaCha20::new_var(&cipher_key.0, &iv).unwrap();
+            let cipher = ChaCha20::new_from_slices(&cipher_key.0, &iv).unwrap();
             EncryptWrite::Stream(Box::new(super::StreamCipherWriter::new(verified, cipher)))
         }
         _ => {

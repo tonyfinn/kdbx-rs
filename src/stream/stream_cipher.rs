@@ -1,9 +1,9 @@
+use cipher::StreamCipher;
 use std::io::{self, Read, Write};
-use stream_cipher::SyncStreamCipher;
 
 pub(crate) struct StreamCipherReader<C, R>
 where
-    C: SyncStreamCipher,
+    C: StreamCipher,
     R: Read,
 {
     inner: R,
@@ -12,7 +12,7 @@ where
 
 impl<C, R> StreamCipherReader<C, R>
 where
-    C: SyncStreamCipher,
+    C: StreamCipher,
     R: Read,
 {
     pub(crate) fn new(inner: R, cipher: C) -> StreamCipherReader<C, R> {
@@ -22,7 +22,7 @@ where
 
 impl<C, R> Read for StreamCipherReader<C, R>
 where
-    C: SyncStreamCipher,
+    C: StreamCipher,
     R: Read,
 {
     fn read(&mut self, buf: &mut [u8]) -> std::io::Result<usize> {
@@ -34,7 +34,7 @@ where
 
 pub(crate) struct StreamCipherWriter<C, W>
 where
-    C: SyncStreamCipher,
+    C: StreamCipher,
     W: Write,
 {
     inner: Option<W>,
@@ -43,7 +43,7 @@ where
 
 impl<C, W> StreamCipherWriter<C, W>
 where
-    C: SyncStreamCipher,
+    C: StreamCipher,
     W: Write,
 {
     pub(crate) fn new(inner: W, cipher: C) -> StreamCipherWriter<C, W> {
@@ -56,7 +56,7 @@ where
 
 impl<C, W> Write for StreamCipherWriter<C, W>
 where
-    C: SyncStreamCipher,
+    C: StreamCipher,
     W: Write,
 {
     fn write(&mut self, buf: &[u8]) -> io::Result<usize> {
@@ -94,7 +94,7 @@ where
 
 impl<C, W> StreamCipherWriterExt<W> for StreamCipherWriter<C, W>
 where
-    C: SyncStreamCipher,
+    C: StreamCipher,
     W: Write,
 {
     fn into_inner(&mut self) -> W {

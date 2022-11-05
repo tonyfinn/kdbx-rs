@@ -1,7 +1,8 @@
 use chacha20::ChaCha20;
+use cipher::KeyIvInit;
+use cipher::StreamCipher;
 use salsa20::Salsa20;
 use sha2::{Digest, Sha256, Sha512};
-use stream_cipher::{NewStreamCipher, StreamCipher};
 use thiserror::Error;
 
 use crate::binary::InnerStreamCipherAlgorithm;
@@ -23,12 +24,14 @@ impl InnerStreamCipherAlgorithm {
             InnerStreamCipherAlgorithm::ChaCha20 => {
                 let iv = Sha512::digest(key);
                 Ok(Box::new(
-                    ChaCha20::new_var(&iv[0..32], &iv[32..44]).unwrap(),
+                    ChaCha20::new_from_slices(&iv[0..32], &iv[32..44]).unwrap(),
                 ))
             }
             InnerStreamCipherAlgorithm::Salsa20 => {
                 let iv = Sha256::digest(key);
-                Ok(Box::new(Salsa20::new_var(&iv[0..32], &SALSA20_IV).unwrap()))
+                Ok(Box::new(
+                    Salsa20::new_from_slices(&iv[0..32], &SALSA20_IV).unwrap(),
+                ))
             }
             _ => Err(InnerStreamError::UnsupportedCipher(self)),
         }

@@ -1,12 +1,14 @@
 use crate::binary;
 
-use aes::{block_cipher_trait::generic_array::GenericArray, Aes256};
-use block_modes::{block_padding::ZeroPadding, BlockMode, Ecb};
-use hmac::crypto_mac::MacResult;
+use aes::Aes256;
+use cipher::generic_array::GenericArray;
+use cipher::BlockEncryptMut;
+use hmac::digest::CtOutput;
 use hmac::{Hmac, Mac};
 use sha2::{Digest, Sha256, Sha512};
 use std::string::ToString;
 use thiserror::Error;
+
 type HmacSha256 = Hmac<Sha256>;
 
 /// Credentials needed to unlock the database
@@ -87,8 +89,8 @@ impl ComposedKey {
                 Ok(MasterKey(hash))
             }
             binary::KdfParams::Aes { rounds, salt } => {
-                let mut cipher: Ecb<Aes256, ZeroPadding> =
-                    Ecb::new_var(&salt, Default::default()).unwrap();
+                use cipher::KeyInit;
+                let mut cipher = Aes256::new_from_slice(&salt).unwrap();
                 let chunked: Vec<GenericArray<u8, _>> = self
                     .0
                     .chunks_exact(16)
@@ -96,14 +98,14 @@ impl ComposedKey {
                     .collect();
                 let mut blocks = [chunked[0], chunked[1]];
                 for _ in 0..*rounds {
-                    cipher.encrypt_blocks(&mut blocks);
+                    cipher.encrypt_blocks_mut(&mut blocks);
                 }
                 let mut transformed_hasher = Sha256::new();
-                transformed_hasher.input(blocks[0]);
-                transformed_hasher.input(blocks[1]);
-                let transformed = transformed_hasher.result();
+                transformed_hasher.update(blocks[0]);
+                transformed_hasher.update(blocks[1]);
+                let transformed = transformed_hasher.finalize().to_vec();
 
-                Ok(MasterKey(transformed.as_slice().to_vec()))
+                Ok(MasterKey(transformed))
             }
             _ => Ok(MasterKey(Vec::new())),
         }
@@ -145,9 +147,9 @@ impl HmacKey {
     /// Obtain a key to verify a single block
     pub(crate) fn block_key(&self, block_idx: u64) -> HmacBlockKey {
         let mut block_key_hash = Sha512::new();
-        block_key_hash.input(&block_idx.to_le_bytes());
-        block_key_hash.input(&*self.0);
-        HmacBlockKey(block_idx, block_key_hash.result().iter().cloned().collect())
+        block_key_hash.update(&block_idx.to_le_bytes());
+        block_key_hash.update(&*self.0);
+        HmacBlockKey(block_idx, block_key_hash.finalize().to_vec())
     }
 }
 
@@ -157,40 +159,40 @@ pub(crate) struct HmacBlockKey(u64, Vec<u8>);
 impl HmacBlockKey {
     /// Verify that a block in the data section is valid
     pub(crate) fn verify_data_block(&self, hmac: &[u8], data: &[u8]) -> bool {
-        let mut calc_hmac = HmacSha256::new_varkey(&self.1).unwrap();
-        calc_hmac.input(&self.0.to_le_bytes());
-        calc_hmac.input(&(data.len() as u32).to_le_bytes());
-        calc_hmac.input(data);
-        calc_hmac.verify(hmac).is_ok()
+        let mut calc_hmac = HmacSha256::new_from_slice(&self.1).unwrap();
+        calc_hmac.update(&self.0.to_le_bytes());
+        calc_hmac.update(&(data.len() as u32).to_le_bytes());
+        calc_hmac.update(data);
+        calc_hmac.verify_slice(hmac).is_ok()
     }
 
     /// Calculate a HMAC for a block in the data section
     pub(crate) fn calculate_data_hmac(
         &self,
         data: &[u8],
-    ) -> MacResult<<HmacSha256 as Mac>::OutputSize> {
-        let mut calc_hmac = HmacSha256::new_varkey(&self.1).unwrap();
-        calc_hmac.input(&self.0.to_le_bytes());
-        calc_hmac.input(&(data.len() as u32).to_le_bytes());
-        calc_hmac.input(data);
-        calc_hmac.result()
+    ) -> Result<CtOutput<HmacSha256>, cipher::InvalidLength> {
+        let mut calc_hmac: HmacSha256 = HmacSha256::new_from_slice(&self.1).unwrap();
+        calc_hmac.update(&self.0.to_le_bytes());
+        calc_hmac.update(&(data.len() as u32).to_le_bytes());
+        calc_hmac.update(data);
+        Ok(calc_hmac.finalize())
     }
 
     /// Calculate a HMAC for a block in the header section
     pub(crate) fn calculate_header_hmac(
         &self,
         data: &[u8],
-    ) -> MacResult<<HmacSha256 as Mac>::OutputSize> {
-        let mut calc_hmac = HmacSha256::new_varkey(&self.1).unwrap();
-        calc_hmac.input(data);
-        calc_hmac.result()
+    ) -> Result<CtOutput<HmacSha256>, cipher::InvalidLength> {
+        let mut calc_hmac = HmacSha256::new_from_slice(&self.1)?;
+        calc_hmac.update(data);
+        Ok(calc_hmac.finalize())
     }
 
     /// Verify that the header block is valid
     pub(crate) fn verify_header_block(&self, hmac: &[u8], data: &[u8]) -> bool {
-        let mut calc_hmac = HmacSha256::new_varkey(&self.1).unwrap();
-        calc_hmac.input(data);
-        calc_hmac.verify(hmac).is_ok()
+        let mut calc_hmac = HmacSha256::new_from_slice(&self.1).unwrap();
+        calc_hmac.update(data);
+        calc_hmac.verify_slice(hmac).is_ok()
     }
 }
 

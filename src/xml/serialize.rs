@@ -1,7 +1,7 @@
 use super::decoders::{encode_datetime, encode_uuid};
 use crate::database::{Database, Entry, Field, Group, MemoryProtection, Meta, Times, Value};
+use cipher::StreamCipher;
 use std::io::Write;
-use stream_cipher::StreamCipher;
 use thiserror::Error;
 use xml::writer::events::XmlEvent;
 use xml::writer::EventWriter as XmlWriter;
@@ -12,6 +12,9 @@ pub enum Error {
     /// Underlying XML writer had an error
     #[error("Could not write XML: {0}")]
     Xml(#[from] xml::writer::Error),
+    /// Failure of stream cipher when encrypting a value
+    #[error("Error encountered encrypting with a stream cipher: {0}")]
+    Cipher(String),
 }
 
 type Result<T> = std::result::Result<T, Error>;
@@ -46,7 +49,9 @@ fn write_field<W: Write, S: StreamCipher + ?Sized>(
         Value::Protected(v) => {
             writer.write(XmlEvent::start_element("Value").attr("Protected", "True"))?;
             let mut encrypt_buf = v.clone().into_bytes();
-            stream_cipher.encrypt(&mut encrypt_buf);
+            stream_cipher
+                .try_apply_keystream(&mut encrypt_buf)
+                .map_err(|e| Error::Cipher(format!("Encryption cipher failed: {}", e)))?;
             let encrypted = base64::encode(&encrypt_buf);
             writer.write(XmlEvent::characters(&encrypted))?;
             writer.write(XmlEvent::end_element())?;

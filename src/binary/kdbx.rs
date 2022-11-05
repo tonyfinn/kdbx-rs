@@ -157,8 +157,9 @@ impl KdbxState for Unlocked {
         let hmac_key = master_key.hmac_key(&self.header.master_seed);
         let hmac = hmac_key
             .block_key(u64::MAX)
-            .calculate_header_hmac(&header_buf);
-        output.write_all(&hmac.code())?;
+            .calculate_header_hmac(&header_buf)
+            .map_err(|_| errors::WriteError::MissingKeys)?;
+        output.write_all(&hmac.into_bytes())?;
         let encrypted_xml = self.encrypt_inner(&master_key)?;
         output.write_all(&encrypted_xml)?;
         Ok(())

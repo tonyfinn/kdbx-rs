@@ -94,8 +94,9 @@ where
         let hmac = self
             .hmac_key
             .block_key(self.block_idx)
-            .calculate_data_hmac(&self.buffer);
-        self.inner.write_all(&hmac.code())?;
+            .calculate_data_hmac(&self.buffer)
+            .unwrap();
+        self.inner.write_all(&hmac.into_bytes())?;
         self.inner
             .write_all(&(self.buffer.len() as u32).to_le_bytes())?;
         self.inner.write_all(&self.buffer)?;

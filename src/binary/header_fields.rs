@@ -221,7 +221,7 @@ impl TryFrom<VariantDict> for KdfParams {
                 Ok(KdfParams::Aes { rounds, salt })
             }
             _ => Ok(KdfParams::Unknown {
-                uuid: uuid,
+                uuid,
                 params: vdict,
             }),
         }

@@ -80,7 +80,11 @@ pub(crate) fn to_hex_string(data: &[u8]) -> String {
 /// No-op stream cipher that does no encryption or decryption
 pub struct NullStreamCipher;
 
-impl stream_cipher::StreamCipher for NullStreamCipher {
-    fn encrypt(&mut self, _data: &mut [u8]) {}
-    fn decrypt(&mut self, _data: &mut [u8]) {}
+impl cipher::StreamCipher for NullStreamCipher {
+    fn try_apply_keystream_inout(
+        &mut self,
+        _buf: cipher::inout::InOutBuf<'_, '_, u8>,
+    ) -> Result<(), cipher::StreamCipherError> {
+        Ok(())
+    }
 }

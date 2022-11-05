@@ -3,8 +3,8 @@ use crate::database::{
     Database, Entry, Field, Group, History, MemoryProtection, Meta, Times, Value,
 };
 use chrono::NaiveDateTime;
+use cipher::StreamCipher;
 use std::io::Read;
-use stream_cipher::StreamCipher;
 use thiserror::Error;
 use uuid::Uuid;
 use xml::reader::{EventReader, XmlEvent};
@@ -116,7 +116,14 @@ fn parse_field<R: Read, S: StreamCipher + ?Sized>(
                         let key_clone = field.key.clone();
                         match base64::decode(&contents) {
                             Ok(mut decoded) => {
-                                stream_cipher.decrypt(decoded.as_mut());
+                                stream_cipher
+                                    .try_apply_keystream(decoded.as_mut())
+                                    .map_err(|e| {
+                                        Error::DecryptFailed(format!(
+                                            "Failed to apply stream cipher: {}",
+                                            e
+                                        ))
+                                    })?;
                                 let to_str = String::from_utf8(decoded)
                                     .map_err(|_| Error::DecryptFailed(key_clone))?;
                                 Value::Protected(to_str)

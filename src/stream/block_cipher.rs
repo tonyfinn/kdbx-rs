@@ -1,26 +1,25 @@
 use crate::crypto;
-use aes::block_cipher_trait::generic_array::GenericArray;
-use aes::block_cipher_trait::BlockCipher;
-use block_modes::block_padding::{Padding, Pkcs7};
-use block_modes::{BlockMode, Cbc};
+use cipher::block_padding::{Padding, Pkcs7};
+use cipher::generic_array::GenericArray;
+use cipher::{BlockCipher, BlockDecryptMut, BlockEncryptMut, KeyInit, KeyIvInit};
 use std::io;
 use thiserror::Error;
 
 #[derive(Debug, Error)]
 pub(crate) enum BlockCipherError {
     #[error("Invalid length for IV")]
-    InvalidIvLength(#[from] block_modes::InvalidKeyIvLength),
+    InvalidIvLength(#[from] cipher::crypto_common::InvalidLength),
 }
 
 pub(crate) struct BlockCipherReader<C, R>
 where
     R: io::Read,
-    C: BlockCipher,
+    C: BlockCipher + BlockDecryptMut,
 {
     inner: R,
     buffer: GenericArray<u8, C::BlockSize>,
     buf_idx: usize,
-    cipher: Cbc<C, Pkcs7>,
+    cipher: cbc::Decryptor<C>,
     first_read: bool,
     peek_byte: Option<u8>,
 }
@@ -28,7 +27,7 @@ where
 impl<C, R> BlockCipherReader<C, R>
 where
     R: io::Read,
-    C: BlockCipher,
+    C: BlockCipher + BlockDecryptMut + KeyInit,
 {
     pub(crate) fn wrap(
         inner: R,
@@ -37,14 +36,20 @@ where
     ) -> Result<BlockCipherReader<C, R>, BlockCipherError> {
         Ok(BlockCipherReader {
             inner,
-            cipher: Cbc::new_var(&key.0, &iv)?,
+            cipher: cbc::Decryptor::new_from_slices(&key.0, &iv)?,
             buffer: GenericArray::default(),
             buf_idx: 0,
             first_read: true,
             peek_byte: None,
         })
     }
+}
 
+impl<C, R> BlockCipherReader<C, R>
+where
+    R: io::Read,
+    C: BlockCipher + BlockDecryptMut,
+{
     fn buffer_next_block(&mut self) -> io::Result<usize> {
         self.buf_idx = 0;
         let mut buffered_bytes = 0;
@@ -81,7 +86,7 @@ where
         };
 
         let mut blocks_to_decrypt = [std::mem::take(&mut self.buffer)];
-        self.cipher.decrypt_blocks(&mut blocks_to_decrypt);
+        self.cipher.decrypt_blocks_mut(&mut blocks_to_decrypt);
 
         let [decrypted_block] = blocks_to_decrypt;
         self.buffer = decrypted_block;
@@ -99,7 +104,7 @@ where
 impl<C, R> io::Read for BlockCipherReader<C, R>
 where
     R: io::Read,
-    C: BlockCipher,
+    C: BlockCipher + BlockDecryptMut,
 {
     fn read(&mut self, buf: &mut [u8]) -> io::Result<usize> {
         let mut remaining_in_buffer = self.buffer.len() - self.buf_idx;
@@ -126,18 +131,18 @@ where
 pub(crate) struct BlockCipherWriter<C, W>
 where
     W: io::Write,
-    C: BlockCipher,
+    C: BlockCipher + BlockEncryptMut,
 {
     inner: Option<W>,
     buffer: GenericArray<u8, C::BlockSize>,
     buf_idx: usize,
-    cipher: Cbc<C, Pkcs7>,
+    cipher: cbc::Encryptor<C>,
 }
 
 impl<C, W> BlockCipherWriter<C, W>
 where
     W: io::Write,
-    C: BlockCipher,
+    C: BlockCipher + BlockEncryptMut + KeyInit,
 {
     pub(crate) fn wrap(
         inner: W,
@@ -146,19 +151,25 @@ where
     ) -> Result<BlockCipherWriter<C, W>, BlockCipherError> {
         Ok(BlockCipherWriter {
             inner: Some(inner),
-            cipher: Cbc::new_var(&key.0, &iv)?,
+            cipher: cbc::Encryptor::new_from_slices(&key.0, &iv)?,
             buffer: GenericArray::default(),
             buf_idx: 0,
         })
     }
+}
 
+impl<C, W> BlockCipherWriter<C, W>
+where
+    W: io::Write,
+    C: BlockCipher + BlockEncryptMut,
+{
     fn write_buffer(&mut self) -> io::Result<()> {
         let inner = self
             .inner
             .as_mut()
             .ok_or_else(|| io::Error::new(io::ErrorKind::BrokenPipe, "Buffer already closed"))?;
         let mut blocks_to_encrypt = [std::mem::take(&mut self.buffer)];
-        self.cipher.encrypt_blocks(&mut blocks_to_encrypt);
+        self.cipher.encrypt_blocks_mut(&mut blocks_to_encrypt);
         inner.write_all(&blocks_to_encrypt[0])?;
         Ok(())
     }
@@ -167,12 +178,11 @@ where
 impl<'a, C, W> BlockCipherWriterExt<'a, W> for BlockCipherWriter<C, W>
 where
     W: io::Write + 'a,
-    C: BlockCipher,
+    C: BlockCipher + BlockEncryptMut,
 {
     fn finish(&mut self) -> io::Result<W> {
         if self.inner.is_some() {
-            Pkcs7::pad_block(&mut self.buffer, self.buf_idx)
-                .map_err(|_| io::Error::new(io::ErrorKind::InvalidData, "Could not pad data"))?;
+            Pkcs7::pad(&mut self.buffer, self.buf_idx);
             self.write_buffer()?;
             Ok(self.inner.take().unwrap())
         } else {
@@ -187,7 +197,7 @@ where
 impl<C, W> io::Write for BlockCipherWriter<C, W>
 where
     W: io::Write,
-    C: BlockCipher,
+    C: BlockCipher + BlockEncryptMut,
 {
     fn write(&mut self, buf: &[u8]) -> io::Result<usize> {
         for byte in buf.iter() {
