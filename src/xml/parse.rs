@@ -229,7 +229,7 @@ fn parse_group<R: Read, S: StreamCipher + ?Sized>(
                 } else if &name.local_name == "UUID" {
                     group.set_uuid(parse_uuid(xml_event_reader)?);
                 } else if &name.local_name == "Name" {
-                    group.set_name(parse_string(xml_event_reader)?.unwrap_or_else(String::new));
+                    group.set_name(parse_string(xml_event_reader)?.unwrap_or_default());
                 } else if &name.local_name == "Times" {
                     group.times = parse_times(xml_event_reader)?;
                 }

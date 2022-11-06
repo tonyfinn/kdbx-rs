@@ -669,7 +669,6 @@ impl Group {
         if let Some(idx) = found_in_entries {
             return Some(&mut self.entries[idx]);
         } else {
-            drop(found_in_entries);
             for group in self.groups_mut() {
                 if let Some(e) = group.find_entry_mut_internal(f) {
                     return Some(e);
@@ -887,13 +886,13 @@ impl<'a> Otp<'a> {
     }
 
     fn find_url_param(&self, key: &str) -> Option<&str> {
-        let mut parts = self.url.split("?");
+        let mut parts = self.url.split('?');
         let _path = parts.next()?;
         let params = parts.next()?;
-        let params = params.split("&");
+        let params = params.split('&');
 
         for param in params {
-            let mut param_parts = param.split("=");
+            let mut param_parts = param.split('=');
             let pkey = param_parts.next()?;
             if pkey == key {
                 return param_parts.next();

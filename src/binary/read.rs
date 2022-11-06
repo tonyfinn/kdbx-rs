@@ -30,7 +30,7 @@ pub fn from_reader<R: Read>(mut input: R) -> Result<Kdbx<Locked>, errors::OpenEr
     let minor_version = u16::from_le_bytes([buffer[0], buffer[1]]);
     let major_version = u16::from_le_bytes([buffer[2], buffer[3]]);
 
-    if major_version < 3 || major_version > 4 {
+    if !(3..=4).contains(&major_version) {
         return Err(errors::OpenError::UnsupportedMajorVersion(major_version));
     }
 

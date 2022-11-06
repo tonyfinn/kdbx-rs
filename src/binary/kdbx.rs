@@ -160,7 +160,7 @@ impl KdbxState for Unlocked {
             .calculate_header_hmac(&header_buf)
             .map_err(|_| errors::WriteError::MissingKeys)?;
         output.write_all(&hmac.into_bytes())?;
-        let encrypted_xml = self.encrypt_inner(&master_key)?;
+        let encrypted_xml = self.encrypt_inner(master_key)?;
         output.write_all(&encrypted_xml)?;
         Ok(())
     }
@@ -291,7 +291,7 @@ impl KdbxState for Locked {
         output.write_all(&header_buf)?;
         if self.major_version >= 4 {
             output.write_all(&crypto::sha256(&header_buf))?;
-            output.write_all(&self.hmac.as_ref().unwrap())?;
+            output.write_all(self.hmac.as_ref().unwrap())?;
         }
         output.write_all(&self.encrypted_data)?;
         Ok(())
@@ -325,9 +325,9 @@ impl Kdbx<Locked> {
     /// If unlock fails, returns the locked kdbx file along with the error
     pub fn unlock(self, key: &crypto::CompositeKey) -> Result<Kdbx<Unlocked>, FailedUnlock> {
         if self.state.major_version >= 4 {
-            self.unlock_v4(&key)
+            self.unlock_v4(key)
         } else {
-            self.unlock_v3(&key)
+            self.unlock_v3(key)
         }
     }
 

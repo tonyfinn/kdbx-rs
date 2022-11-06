@@ -55,8 +55,8 @@ where
             remaining_in_buffer = self.buffer_next_block()?;
         }
         let copy_len = usize::min(remaining_in_buffer, buf.len());
-        for i in 0..copy_len {
-            buf[i] = self.buffer[self.buf_idx + i];
+        for (i, byte) in buf.iter_mut().enumerate().take(copy_len) {
+            *byte = self.buffer[self.buf_idx + i];
         }
         self.buf_idx += copy_len;
         Ok(copy_len)

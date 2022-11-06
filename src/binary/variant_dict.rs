@@ -76,7 +76,7 @@ impl Value {
         match self {
             Value::Uint32(val) => val.to_le_bytes().to_vec(),
             Value::Uint64(val) => val.to_le_bytes().to_vec(),
-            Value::Boolean(val) => vec![if *val { 1 } else { 0 }],
+            Value::Boolean(val) => vec![u8::from(*val)],
             Value::Int32(val) => val.to_le_bytes().to_vec(),
             Value::Int64(val) => val.to_le_bytes().to_vec(),
             Value::String(val) => val.as_bytes().to_vec(),

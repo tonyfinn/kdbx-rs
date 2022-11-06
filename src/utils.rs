@@ -1,5 +1,6 @@
 //! Utilities to help working with kdbx-rs
 
+use std::fmt::Write;
 use std::io;
 use uuid::Uuid;
 
@@ -71,7 +72,7 @@ pub(crate) fn to_hex_string(data: &[u8]) -> String {
     let mut output = String::new();
 
     for byte in data {
-        output.push_str(&format!("{:x}", byte))
+        write!(output, "{:x}", byte).unwrap();
     }
 
     output

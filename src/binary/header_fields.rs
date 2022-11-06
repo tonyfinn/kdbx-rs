@@ -42,7 +42,7 @@ const CIPHER_TABLE: [(&str, Cipher); 4] = [
 
 impl From<uuid::Uuid> for Cipher {
     fn from(uuid: uuid::Uuid) -> Cipher {
-        utils::value_from_uuid_table(&CIPHER_TABLE, uuid).unwrap_or_else(|| Cipher::Unknown(uuid))
+        utils::value_from_uuid_table(&CIPHER_TABLE, uuid).unwrap_or(Cipher::Unknown(uuid))
     }
 }
 
@@ -128,8 +128,7 @@ pub(crate) const KDF_TABLE: [(&str, KdfAlgorithm); 3] = [
 
 impl From<uuid::Uuid> for KdfAlgorithm {
     fn from(uuid: uuid::Uuid) -> KdfAlgorithm {
-        utils::value_from_uuid_table(&KDF_TABLE, uuid)
-            .unwrap_or_else(|| KdfAlgorithm::Unknown(uuid))
+        utils::value_from_uuid_table(&KDF_TABLE, uuid).unwrap_or(KdfAlgorithm::Unknown(uuid))
     }
 }
 
@@ -228,10 +227,10 @@ impl TryFrom<VariantDict> for KdfParams {
     }
 }
 
-impl Into<VariantDict> for KdfParams {
-    fn into(self) -> VariantDict {
+impl From<KdfParams> for VariantDict {
+    fn from(params: KdfParams) -> VariantDict {
         let mut vdict = variant_dict::VariantDict::new();
-        match self {
+        match params {
             KdfParams::Argon2 {
                 memory_bytes,
                 version,
@@ -311,9 +310,9 @@ pub enum CompressionType {
     Unknown(u32),
 }
 
-impl Into<u32> for CompressionType {
-    fn into(self) -> u32 {
-        match self {
+impl From<CompressionType> for u32 {
+    fn from(compression_type: CompressionType) -> u32 {
+        match compression_type {
             CompressionType::None => COMPRESSION_TYPE_NONE,
             CompressionType::Gzip => COMPRESSION_TYPE_GZIP,
             CompressionType::Unknown(val) => val,
@@ -356,9 +355,6 @@ mod tests {
         assert_eq!(KdfAlgorithm::from(aes31), KdfAlgorithm::Aes256_Kdbx3_1);
         assert_eq!(KdfAlgorithm::from(aes4), KdfAlgorithm::Aes256_Kdbx4);
         assert_eq!(KdfAlgorithm::from(argon2), KdfAlgorithm::Argon2);
-        assert_eq!(
-            KdfAlgorithm::from(invalid.clone()),
-            KdfAlgorithm::Unknown(invalid.clone())
-        );
+        assert_eq!(KdfAlgorithm::from(invalid), KdfAlgorithm::Unknown(invalid));
     }
 }

@@ -57,8 +57,8 @@ impl<R: Read> Read for HMacReader<R> {
             remaining_in_buffer = self.buffer_next_block()?;
         }
         let copy_len = usize::min(remaining_in_buffer, buf.len());
-        for i in 0..copy_len {
-            buf[i] = self.buffer[self.buf_idx + i];
+        for (i, byte) in buf.iter_mut().enumerate().take(copy_len) {
+            *byte = self.buffer[self.buf_idx + i];
         }
         self.buf_idx += copy_len;
         Ok(copy_len)
@@ -111,7 +111,7 @@ where
     W: Write,
 {
     pub(crate) fn finish(mut self) -> io::Result<W> {
-        if self.buffer.len() > 0 {
+        if !self.buffer.is_empty() {
             self.write_block()?;
         }
         self.write_block()?;

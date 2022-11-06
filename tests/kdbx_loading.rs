@@ -1,4 +1,3 @@
-use kdbx_rs;
 use std::fs;
 use std::path::PathBuf;
 

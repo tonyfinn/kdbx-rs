@@ -89,7 +89,7 @@ pub(crate) trait StreamCipherWriterExt<W>: Write
 where
     W: Write,
 {
-    fn into_inner(&mut self) -> W;
+    fn take_innner(&mut self) -> W;
 }
 
 impl<C, W> StreamCipherWriterExt<W> for StreamCipherWriter<C, W>
@@ -97,7 +97,7 @@ where
     C: StreamCipher,
     W: Write,
 {
-    fn into_inner(&mut self) -> W {
+    fn take_innner(&mut self) -> W {
         self.inner.take().unwrap()
     }
 }

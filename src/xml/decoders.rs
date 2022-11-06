@@ -16,9 +16,8 @@ pub fn decode_uuid(b64uuid: &str) -> Option<Uuid> {
 pub(crate) fn decode_datetime_b64(b64date: &str) -> Option<NaiveDateTime> {
     let decoded = base64::decode(b64date).ok()?;
     let mut bytes = [0u8; 8];
-    for i in 0..usize::min(bytes.len(), decoded.len()) {
-        bytes[i] = decoded[i];
-    }
+    let copy_size = usize::min(bytes.len(), decoded.len());
+    bytes[..copy_size].copy_from_slice(&decoded[..copy_size]);
     let timestamp = Duration::seconds(i64::from_le_bytes(bytes));
 
     keepass_epoch().checked_add_signed(timestamp)
@@ -29,7 +28,7 @@ pub(crate) fn decode_datetime_b64(b64date: &str) -> Option<NaiveDateTime> {
 /// This handles either ISO8601 date strings (as used in KDBX3)
 /// or base64 encoded seconds since 1/1/1 00:00:00 as used in KDBX 4
 pub fn decode_datetime(strdate: &str) -> Option<NaiveDateTime> {
-    if strdate.contains("-") {
+    if strdate.contains('-') {
         let dt = DateTime::parse_from_rfc3339(strdate).ok()?;
         Some(dt.naive_utc())
     } else {

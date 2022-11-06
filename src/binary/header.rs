@@ -70,9 +70,9 @@ impl From<u8> for OuterHeaderId {
     }
 }
 
-impl Into<u8> for OuterHeaderId {
-    fn into(self) -> u8 {
-        match self {
+impl From<OuterHeaderId> for u8 {
+    fn from(id: OuterHeaderId) -> u8 {
+        match id {
             OuterHeaderId::EndOfHeader => 0,
             OuterHeaderId::Comment => 0x1,
             OuterHeaderId::CipherId => 0x2,
@@ -124,9 +124,9 @@ impl From<u8> for InnerHeaderId {
     }
 }
 
-impl Into<u8> for InnerHeaderId {
-    fn into(self) -> u8 {
-        match self {
+impl From<InnerHeaderId> for u8 {
+    fn from(id: InnerHeaderId) -> u8 {
+        match id {
             InnerHeaderId::EndOfHeader => 0,
             InnerHeaderId::InnerRandomStreamCipherId => 1,
             InnerHeaderId::InnerRandomStreamKey => 2,
@@ -297,18 +297,18 @@ impl KdbxHeaderBuilder {
         Ok(KdbxHeader {
             cipher: self
                 .cipher
-                .ok_or_else(|| Error::MissingRequiredField(OuterHeaderId::CipherId))?,
+                .ok_or(Error::MissingRequiredField(OuterHeaderId::CipherId))?,
             compression_type: self
                 .compression_type
-                .ok_or_else(|| Error::MissingRequiredField(OuterHeaderId::CompressionFlags))?,
+                .ok_or(Error::MissingRequiredField(OuterHeaderId::CompressionFlags))?,
             master_seed: self
                 .master_seed
-                .ok_or_else(|| Error::MissingRequiredField(OuterHeaderId::MasterSeed))?,
+                .ok_or(Error::MissingRequiredField(OuterHeaderId::MasterSeed))?,
             encryption_iv: self
                 .encryption_iv
-                .ok_or_else(|| Error::MissingRequiredField(OuterHeaderId::EncryptionIv))?,
+                .ok_or(Error::MissingRequiredField(OuterHeaderId::EncryptionIv))?,
             kdf_params: kdf_params
-                .ok_or_else(|| Error::MissingRequiredField(OuterHeaderId::KdfParameters))?,
+                .ok_or(Error::MissingRequiredField(OuterHeaderId::KdfParameters))?,
             stream_start_bytes: self.stream_start_bytes,
             other_headers: self.other_headers,
         })
@@ -408,7 +408,7 @@ impl KdbxHeader {
             .iter()
             .cloned()
             .chain(once(self.cipher.into()))
-            .chain(once(self.compression_type.clone().into()))
+            .chain(once(self.compression_type.into()))
             .chain(once(HeaderField::new(
                 OuterHeaderId::MasterSeed,
                 self.master_seed.clone(),
@@ -457,12 +457,14 @@ impl KdbxInnerHeaderBuilder {
 
     fn build(self) -> Result<KdbxInnerHeader> {
         Ok(KdbxInnerHeader {
-            inner_stream_cipher: self.inner_stream_cipher.ok_or_else(|| {
-                Error::MissingRequiredInnerField(InnerHeaderId::InnerRandomStreamCipherId)
-            })?,
-            inner_stream_key: self.inner_stream_key.ok_or_else(|| {
-                Error::MissingRequiredInnerField(InnerHeaderId::InnerRandomStreamKey)
-            })?,
+            inner_stream_cipher: self.inner_stream_cipher.ok_or(
+                Error::MissingRequiredInnerField(InnerHeaderId::InnerRandomStreamCipherId),
+            )?,
+            inner_stream_key: self
+                .inner_stream_key
+                .ok_or(Error::MissingRequiredInnerField(
+                    InnerHeaderId::InnerRandomStreamKey,
+                ))?,
             other_headers: self.other_headers,
         })
     }
@@ -485,13 +487,17 @@ impl KdbxInnerHeader {
             .other_headers
             .iter()
             .find(|h| h.ty == OuterHeaderId::InnerRandomStreamId)
-            .ok_or_else(|| Error::MissingRequiredField(OuterHeaderId::InnerRandomStreamId))?
+            .ok_or(Error::MissingRequiredField(
+                OuterHeaderId::InnerRandomStreamId,
+            ))?
             .data;
         let key = header
             .other_headers
             .iter()
             .find(|h| h.ty == OuterHeaderId::ProtectedStreamKey)
-            .ok_or_else(|| Error::MissingRequiredField(OuterHeaderId::ProtectedStreamKey))?
+            .ok_or(Error::MissingRequiredField(
+                OuterHeaderId::ProtectedStreamKey,
+            ))?
             .data
             .clone();
         let mut cipher_id_buf = [0u8; 4];
@@ -543,7 +549,7 @@ impl KdbxInnerHeader {
             .other_headers
             .iter()
             .cloned()
-            .chain(once(self.inner_stream_cipher.clone().into()))
+            .chain(once(self.inner_stream_cipher.into()))
             .chain(once(HeaderField::new(
                 InnerHeaderId::InnerRandomStreamKey,
                 self.inner_stream_key.clone(),

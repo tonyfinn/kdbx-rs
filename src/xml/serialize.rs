@@ -56,7 +56,7 @@ fn write_field<W: Write, S: StreamCipher + ?Sized>(
             writer.write(XmlEvent::characters(&encrypted))?;
             writer.write(XmlEvent::end_element())?;
         }
-        Value::Standard(v) => write_string_tag(writer, "Value", &v)?,
+        Value::Standard(v) => write_string_tag(writer, "Value", v)?,
         Value::Empty | Value::ProtectEmpty => {
             writer.write(XmlEvent::start_element("Value"))?;
             writer.write(XmlEvent::end_element())?;
@@ -135,7 +135,7 @@ fn write_entry<W: Write, S: StreamCipher + ?Sized>(
     for field in entry.fields() {
         write_field(writer, "String", field, stream_cipher)?;
     }
-    if entry.history.len() > 0 {
+    if !entry.history.is_empty() {
         writer.write(XmlEvent::start_element("History"))?;
         for old_entry in entry.history.entries() {
             write_entry(writer, old_entry, stream_cipher)?;
@@ -156,10 +156,10 @@ fn write_group<W: Write, S: StreamCipher + ?Sized>(
     write_string_tag(writer, "Name", group.name())?;
     write_times(writer, &group.times)?;
     for entry in group.entries() {
-        write_entry(writer, &entry, stream_cipher)?;
+        write_entry(writer, entry, stream_cipher)?;
     }
     for group in group.groups() {
-        write_group(writer, &group, stream_cipher)?;
+        write_group(writer, group, stream_cipher)?;
     }
     writer.write(XmlEvent::end_element())?;
     Ok(())

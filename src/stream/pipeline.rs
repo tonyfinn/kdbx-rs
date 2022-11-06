@@ -51,7 +51,7 @@ pub(crate) fn decryption_stream<'a, R: io::Read + 'a>(
             inner, cipher_key, iv,
         )?),
         binary::Cipher::ChaCha20 => {
-            let cipher = ChaCha20::new_from_slices(&cipher_key.0, &iv).unwrap();
+            let cipher = ChaCha20::new_from_slices(&cipher_key.0, iv).unwrap();
             Box::new(super::StreamCipherReader::new(inner, cipher))
         }
         _ => {
@@ -77,7 +77,7 @@ pub(crate) fn kdbx3_read_stream<'a, R: io::Read + 'a>(
     let mut decrypted = decryption_stream(buffered, cipher_key, cipher, iv)?;
     let mut start_bytes = [0u8; 32];
     decrypted.read_exact(&mut start_bytes)?;
-    if &start_bytes != expected_start_bytes {
+    if start_bytes != expected_start_bytes {
         return Err(io::Error::new(
             io::ErrorKind::InvalidData,
             "Could not validate start bytes",
@@ -139,7 +139,7 @@ where
     fn finish(self) -> io::Result<HmacWriter<'a, W>> {
         match self {
             EncryptWrite::Block(mut inner) => inner.finish(),
-            EncryptWrite::Stream(mut inner) => Ok(inner.into_inner()),
+            EncryptWrite::Stream(mut inner) => Ok(inner.take_innner()),
         }
     }
 }
@@ -243,7 +243,7 @@ pub(crate) fn kdbx4_write_stream<'a, W: 'a + io::Write>(
             block_cipher_write_stream::<Twofish, _>(verified, cipher_key, iv)?
         }
         binary::Cipher::ChaCha20 => {
-            let cipher = ChaCha20::new_from_slices(&cipher_key.0, &iv).unwrap();
+            let cipher = ChaCha20::new_from_slices(&cipher_key.0, iv).unwrap();
             EncryptWrite::Stream(Box::new(super::StreamCipherWriter::new(verified, cipher)))
         }
         _ => {

@@ -1,4 +1,3 @@
-use kdbx_rs;
 use kdbx_rs::binary::InnerStreamCipherAlgorithm;
 use kdbx_rs::database::{Entry, Times};
 use kdbx_rs::xml::write_xml;

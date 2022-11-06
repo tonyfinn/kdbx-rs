@@ -90,7 +90,7 @@ impl ComposedKey {
             }
             binary::KdfParams::Aes { rounds, salt } => {
                 use cipher::KeyInit;
-                let mut cipher = Aes256::new_from_slice(&salt).unwrap();
+                let mut cipher = Aes256::new_from_slice(salt).unwrap();
                 let chunked: Vec<GenericArray<u8, _>> = self
                     .0
                     .chunks_exact(16)
@@ -147,7 +147,7 @@ impl HmacKey {
     /// Obtain a key to verify a single block
     pub(crate) fn block_key(&self, block_idx: u64) -> HmacBlockKey {
         let mut block_key_hash = Sha512::new();
-        block_key_hash.update(&block_idx.to_le_bytes());
+        block_key_hash.update(block_idx.to_le_bytes());
         block_key_hash.update(&*self.0);
         HmacBlockKey(block_idx, block_key_hash.finalize().to_vec())
     }
@@ -198,7 +198,7 @@ impl HmacBlockKey {
 
 /// Confirm the hash of a given block of data for data corruption detection
 pub(crate) fn verify_sha256(data: &[u8], expected_sha: &[u8]) -> bool {
-    expected_sha == &*Sha256::digest(&data)
+    expected_sha == &*Sha256::digest(data)
 }
 
 pub(crate) fn sha256(data: &[u8]) -> Vec<u8> {

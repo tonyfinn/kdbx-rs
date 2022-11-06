@@ -36,7 +36,7 @@ where
     ) -> Result<BlockCipherReader<C, R>, BlockCipherError> {
         Ok(BlockCipherReader {
             inner,
-            cipher: cbc::Decryptor::new_from_slices(&key.0, &iv)?,
+            cipher: cbc::Decryptor::new_from_slices(&key.0, iv)?,
             buffer: GenericArray::default(),
             buf_idx: 0,
             first_read: true,
@@ -113,8 +113,8 @@ where
             remaining_in_buffer = self.buffer_next_block()?;
         }
         let copy_len = usize::min(remaining_in_buffer, buf.len());
-        for i in 0..copy_len {
-            buf[i] = self.buffer[self.buf_idx + i];
+        for (i, byte) in buf.iter_mut().enumerate().take(copy_len) {
+            *byte = self.buffer[self.buf_idx + i];
         }
         self.buf_idx += copy_len;
         Ok(copy_len)
@@ -151,7 +151,7 @@ where
     ) -> Result<BlockCipherWriter<C, W>, BlockCipherError> {
         Ok(BlockCipherWriter {
             inner: Some(inner),
-            cipher: cbc::Encryptor::new_from_slices(&key.0, &iv)?,
+            cipher: cbc::Encryptor::new_from_slices(&key.0, iv)?,
             buffer: GenericArray::default(),
             buf_idx: 0,
         })
