@@ -90,7 +90,7 @@ The following tags are currently used by KeePass:
     * AES (kdbx 4) = 7c02bb82-79a7-4ac0-927d-114a00648238
     * Note that it's possible for the KDBX 3.1 AES UUID to appear
       in a KDBX 4 file. 
-    * Argon2 = ef636ddf-8c29-444b-91f7-a9a403e30a0c
+    * Argon2d = ef636ddf-8c29-444b-91f7-a9a403e30a0c
   * AES Parameters
     * "R" - The number of rounds to use in the AES KDF
     * "S" - The seed/salt value to use in the AES KDF
