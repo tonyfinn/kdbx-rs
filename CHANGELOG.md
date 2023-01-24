@@ -1,5 +1,12 @@
 # Changelog
 
+## 0.4.0
+
+- Add support for Argon2id
+  [!1](https://gitlab.com/tonyfinn/kdbx-rs/-/merge_requests/1) - [Samuel
+  Tardieu](https://gitlab.com/samueltardieu)
+- Various other code cleanup
+
 ## 0.3.0
 
 - Dependency updates
