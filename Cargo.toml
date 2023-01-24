@@ -2,13 +2,14 @@
 name = "kdbx-rs"
 version = "0.3.0"
 authors = ["Tony Finn <tony@tonyfinn.com>"]
-edition = "2018"
+edition = "2021"
 description = "Keepass 2 (KDBX) password database parsing and creation"
 readme = "README.md"
 repository = "https://gitlab.com/tonyfinn/kdbx-rs"
 license = "GPL-3.0+"
 keywords = ["kdbx", "keepass", "password", "parser"]
 categories = ["encoding", "parser-implementations"]
+rust-version = "1.56.1"
 
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
