@@ -208,10 +208,10 @@ where
     }
 }
 
-fn block_cipher_write_stream<'a, 'b, C, W>(
+fn block_cipher_write_stream<'a, C, W>(
     inner: HmacWriter<'a, W>,
     key: crypto::CipherKey,
-    iv: &'b [u8],
+    iv: &[u8],
 ) -> io::Result<EncryptWrite<'a, W>>
 where
     W: io::Write,
