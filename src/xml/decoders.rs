@@ -2,7 +2,10 @@ use chrono::{DateTime, Duration, NaiveDate, NaiveDateTime};
 use uuid::Uuid;
 
 pub fn keepass_epoch() -> NaiveDateTime {
-    NaiveDate::from_ymd(1, 1, 1).and_hms(0, 0, 0)
+    NaiveDate::from_ymd_opt(1, 1, 1)
+        .unwrap()
+        .and_hms_opt(0, 0, 0)
+        .unwrap()
 }
 
 /// Decode a UUID from a Keepass XML file
