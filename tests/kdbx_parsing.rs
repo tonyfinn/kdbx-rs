@@ -7,7 +7,7 @@ fn kdbx4_parsing() -> Result<(), kdbx_rs::Error> {
     file_path.push(env!("CARGO_MANIFEST_DIR"));
     file_path.push("res");
     file_path.push("test_input");
-    file_path.push("kdbx4-argon2.kdbx");
+    file_path.push("kdbx4-argon2d.kdbx");
 
     let file = fs::File::open(file_path).unwrap();
 
@@ -44,7 +44,7 @@ fn kdbx4_parsing_twofish() -> Result<(), kdbx_rs::Error> {
     file_path.push(env!("CARGO_MANIFEST_DIR"));
     file_path.push("res");
     file_path.push("test_input");
-    file_path.push("kdbx4-argon2-twofish.kdbx");
+    file_path.push("kdbx4-argon2d-twofish.kdbx");
 
     let file = fs::File::open(file_path).unwrap();
 
@@ -82,7 +82,7 @@ fn kdbx4_parsing_chacha20() -> Result<(), kdbx_rs::Error> {
     file_path.push(env!("CARGO_MANIFEST_DIR"));
     file_path.push("res");
     file_path.push("test_input");
-    file_path.push("kdbx4-argon2-chacha20.kdbx");
+    file_path.push("kdbx4-argon2d-chacha20.kdbx");
 
     let file = fs::File::open(file_path).unwrap();
 
