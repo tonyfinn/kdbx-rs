@@ -14,7 +14,8 @@ const TWOFISH_UUID: &str = "ad68f29f-576f-4bb9-a36a-d47af965346c";
 const CHACHA20_UUID: &str = "d6038a2b-8b6f-4cb5-a524-339a31dbb59a";
 const AES_3_1_UUID: &str = "c9d9f39a-628a-4460-bf74-0d08c18a4fea";
 const AES_4_UUID: &str = "7c02bb82-79a7-4ac0-927d-114a00648238";
-const ARGON2_UUID: &str = "ef636ddf-8c29-444b-91f7-a9a403e30a0c";
+const ARGON2D_UUID: &str = "ef636ddf-8c29-444b-91f7-a9a403e30a0c";
+const ARGON2ID_UUID: &str = "9e298b19-56db-4773-b23d-fc3ec6f0a1e6";
 const COMPRESSION_TYPE_NONE: u32 = 0;
 const COMPRESSION_TYPE_GZIP: u32 = 1;
 
@@ -110,8 +111,10 @@ impl From<InnerStreamCipherAlgorithm> for u32 {
 #[allow(non_camel_case_types)]
 /// Algorithm used for converting from credentials to crypto keys
 pub enum KdfAlgorithm {
-    /// Argon2 KDF
-    Argon2,
+    /// Argon2d KDF
+    Argon2d,
+    /// Argon2id KDF
+    Argon2id,
     /// AES 256 as used in KDBX4+
     Aes256_Kdbx4,
     /// AES 256 as used in KDBX3.1
@@ -120,10 +123,11 @@ pub enum KdfAlgorithm {
     Unknown(uuid::Uuid),
 }
 
-pub(crate) const KDF_TABLE: [(&str, KdfAlgorithm); 3] = [
+pub(crate) const KDF_TABLE: [(&str, KdfAlgorithm); 4] = [
     (AES_3_1_UUID, KdfAlgorithm::Aes256_Kdbx3_1),
     (AES_4_UUID, KdfAlgorithm::Aes256_Kdbx4),
-    (ARGON2_UUID, KdfAlgorithm::Argon2),
+    (ARGON2D_UUID, KdfAlgorithm::Argon2d),
+    (ARGON2ID_UUID, KdfAlgorithm::Argon2id),
 ];
 
 impl From<uuid::Uuid> for KdfAlgorithm {
@@ -146,6 +150,8 @@ impl From<KdfAlgorithm> for uuid::Uuid {
 pub enum KdfParams {
     /// Argon 2 KDF
     Argon2 {
+        /// Argon2 variant
+        variant: argon2::Variant,
         /// Amount of memory to use for key gen
         memory_bytes: u64,
         /// Argon2 version used (this library supports v19/0x13)
@@ -198,14 +204,15 @@ impl TryFrom<VariantDict> for KdfParams {
         let kdf_algorithm = KdfAlgorithm::from(uuid);
 
         match kdf_algorithm {
-            KdfAlgorithm::Argon2 => {
+            KdfAlgorithm::Argon2d | KdfAlgorithm::Argon2id => {
                 let memory_bytes =
-                    KdfParams::opt_from_vdict("M", KdfAlgorithm::Argon2, &mut vdict)?;
-                let version = KdfParams::opt_from_vdict("V", KdfAlgorithm::Argon2, &mut vdict)?;
-                let salt = KdfParams::opt_from_vdict("S", KdfAlgorithm::Argon2, &mut vdict)?;
-                let iterations = KdfParams::opt_from_vdict("I", KdfAlgorithm::Argon2, &mut vdict)?;
-                let lanes = KdfParams::opt_from_vdict("P", KdfAlgorithm::Argon2, &mut vdict)?;
+                    KdfParams::opt_from_vdict("M", KdfAlgorithm::Argon2d, &mut vdict)?;
+                let version = KdfParams::opt_from_vdict("V", KdfAlgorithm::Argon2d, &mut vdict)?;
+                let salt = KdfParams::opt_from_vdict("S", KdfAlgorithm::Argon2d, &mut vdict)?;
+                let iterations = KdfParams::opt_from_vdict("I", KdfAlgorithm::Argon2d, &mut vdict)?;
+                let lanes = KdfParams::opt_from_vdict("P", KdfAlgorithm::Argon2d, &mut vdict)?;
                 Ok(KdfParams::Argon2 {
+                    variant: utils::argon2_algo_to_variant(kdf_algorithm),
                     memory_bytes,
                     version,
                     salt,
@@ -232,6 +239,7 @@ impl From<KdfParams> for VariantDict {
         let mut vdict = variant_dict::VariantDict::new();
         match params {
             KdfParams::Argon2 {
+                variant,
                 memory_bytes,
                 version,
                 salt,
@@ -241,7 +249,9 @@ impl From<KdfParams> for VariantDict {
                 vdict.insert(
                     "$UUID".into(),
                     variant_dict::Value::Array(
-                        uuid::Uuid::from(KdfAlgorithm::Argon2).as_bytes().to_vec(),
+                        uuid::Uuid::from(utils::argon2_variant_to_algo(variant))
+                            .as_bytes()
+                            .to_vec(),
                     ),
                 );
                 vdict.insert("M".into(), variant_dict::Value::Uint64(memory_bytes));
@@ -349,12 +359,12 @@ mod tests {
     fn kdf_from_slice() {
         let aes31 = Uuid::parse_str(AES_3_1_UUID).unwrap();
         let aes4 = Uuid::parse_str(AES_4_UUID).unwrap();
-        let argon2 = Uuid::parse_str(ARGON2_UUID).unwrap();
+        let argon2 = Uuid::parse_str(ARGON2D_UUID).unwrap();
         let invalid = Uuid::parse_str(AES128_UUID).unwrap();
 
         assert_eq!(KdfAlgorithm::from(aes31), KdfAlgorithm::Aes256_Kdbx3_1);
         assert_eq!(KdfAlgorithm::from(aes4), KdfAlgorithm::Aes256_Kdbx4);
-        assert_eq!(KdfAlgorithm::from(argon2), KdfAlgorithm::Argon2);
+        assert_eq!(KdfAlgorithm::from(argon2), KdfAlgorithm::Argon2d);
         assert_eq!(KdfAlgorithm::from(invalid), KdfAlgorithm::Unknown(invalid));
     }
 }

@@ -4,6 +4,8 @@ use std::fmt::Write;
 use std::io;
 use uuid::Uuid;
 
+use crate::binary::KdfAlgorithm;
+
 pub(crate) fn value_from_uuid_table<T: Clone>(
     table: &[(&str, T)],
     lookup: uuid::Uuid,
@@ -88,4 +90,24 @@ impl cipher::StreamCipher for NullStreamCipher {
     ) -> Result<(), cipher::StreamCipherError> {
         Ok(())
     }
+}
+
+/// Convert one of the Argon2 [`KdfAlgorithm`] into its [`Variant`](argon2::Variant).
+/// Only Argon2d and Argon2id must be passed to this function.
+pub(crate) fn argon2_algo_to_variant(algo: KdfAlgorithm) -> argon2::Variant {
+    match algo {
+        KdfAlgorithm::Argon2d => argon2::Variant::Argon2d,
+        KdfAlgorithm::Argon2id => argon2::Variant::Argon2id,
+        a => panic!("invalid algorithm {:?}", a),
+    }
+}
+
+/// Convert a Argon2 [`Variant`](argon2::Variant) into the corresponding
+/// [`KdfAlgorithm`]. Only Argon2d and Argon2id algorithms are supported.
+pub(crate) fn argon2_variant_to_algo(variant: argon2::Variant) -> KdfAlgorithm {
+   match variant {
+    argon2::Variant::Argon2d => KdfAlgorithm::Argon2d,
+    argon2::Variant::Argon2id => KdfAlgorithm::Argon2id,
+    v => panic!("invalid variant {:?}", v),
+   } 
 }

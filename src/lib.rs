@@ -17,7 +17,7 @@
 //! # fn main() -> Result<(), kdbx_rs::Error> {
 //! use kdbx_rs::CompositeKey;
 //!
-//! # let file_path = "./res/test_input/kdbx4-argon2.kdbx";
+//! # let file_path = "./res/test_input/kdbx4-argon2d.kdbx";
 //! let kdbx = kdbx_rs::open(file_path)?;
 //! let key = CompositeKey::from_password("kdbxrs");
 //! let unlocked = kdbx.unlock(&key)?;

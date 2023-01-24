@@ -361,6 +361,7 @@ impl KdbxHeader {
         KdbxHeader {
             cipher: header_fields::Cipher::Aes256,
             kdf_params: header_fields::KdfParams::Argon2 {
+                variant: argon2::Variant::Argon2d,
                 iterations: 10,
                 memory_bytes: 0xFFFF * 1024,
                 salt: cipher_salt,
