@@ -35,6 +35,7 @@ fn load_kdbx4_argon2() {
     assert_eq!(
         db.header().kdf_params,
         kdbx_rs::binary::KdfParams::Argon2 {
+            variant: argon2::Variant::Argon2d,
             iterations: 2,
             lanes: 2,
             memory_bytes: 65536 * 1024,

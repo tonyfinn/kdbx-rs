@@ -67,6 +67,7 @@ impl ComposedKey {
     ) -> Result<MasterKey, KeyGenerationError> {
         match kdf_options {
             binary::KdfParams::Argon2 {
+                variant,
                 memory_bytes,
                 version,
                 iterations,
@@ -74,7 +75,7 @@ impl ComposedKey {
                 salt,
             } => {
                 let config = argon2::Config {
-                    variant: argon2::Variant::Argon2d,
+                    variant: *variant,
                     version: argon2::Version::from_u32(*version)
                         .map_err(|e| KeyGenerationError::KeyGeneration(e.to_string()))?,
                     lanes: *lanes,

@@ -6,6 +6,7 @@ fn print_kdf(params: &kdbx_rs::binary::KdfParams) {
     use kdbx_rs::binary::KdfParams as p;
     match params {
         p::Argon2 {
+            variant,
             salt,
             iterations,
             memory_bytes,
@@ -13,6 +14,7 @@ fn print_kdf(params: &kdbx_rs::binary::KdfParams) {
             lanes,
         } => {
             println!("KDF: Argon2");
+            println!("\tVariant: {:?}", variant);
             println!("\tVersion: {}", version);
             println!("\tLanes: {}", lanes);
             println!(
