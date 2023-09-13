@@ -1,5 +1,12 @@
 # Changelog
 
+## 0.5.0
+
+- Dependency updates to remove time 0.1.0 
+  [!6](https://gitlab.com/tonyfinn/kdbx-rs/-/merge_requests/6) - [Samuel
+  Tardieu](https://gitlab.com/samueltardieu)
+
+
 ## 0.4.0
 
 - Add support for Argon2id
