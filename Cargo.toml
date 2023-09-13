@@ -15,7 +15,7 @@ rust-version = "1.56.1"
 
 [dependencies]
 base64 = "0.13.1"
-chrono = "0.4.22"
+chrono = "0.4.30"
 derive_more = "0.99.17"
 thiserror = "1.0"
 uuid = { version = "1.2.1", features = ["v4"] }
