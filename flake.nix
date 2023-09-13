@@ -9,11 +9,13 @@
 
   outputs = { self, nixpkgs, flake-utils }:
     flake-utils.lib.eachDefaultSystem (system:
-      let pkgs = nixpkgs.legacyPackages.${system};
+    let 
+      pkgs = nixpkgs.legacyPackages.${system};
+      version = (pkgs.lib.importTOML ./Cargo.toml).package.version;
       in {
         packages.default = pkgs.rustPlatform.buildRustPackage {
           pname = "kdbx-rs";
-          version = "0.2.2";
+          inherit version;
           src = ./.;
           cargoLock = {
             lockFile = ./Cargo.lock;
