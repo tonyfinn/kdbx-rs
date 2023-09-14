@@ -323,6 +323,7 @@ impl Kdbx<Locked> {
     /// Unlocks the kdbx file
     ///
     /// If unlock fails, returns the locked kdbx file along with the error
+    #[allow(clippy::result_large_err)]
     pub fn unlock(self, key: &crypto::CompositeKey) -> Result<Kdbx<Unlocked>, FailedUnlock> {
         if self.state.major_version >= 4 {
             self.unlock_v4(key)
@@ -350,6 +351,7 @@ impl Kdbx<Locked> {
         Ok((inner_header, output_buffer))
     }
 
+    #[allow(clippy::result_large_err)]
     fn unlock_v3(self, key: &crypto::CompositeKey) -> Result<Kdbx<Unlocked>, FailedUnlock> {
         let composed_key = key.composed();
         let master_key = match composed_key.master_key(&self.header().kdf_params) {
@@ -383,6 +385,7 @@ impl Kdbx<Locked> {
         }
     }
 
+    #[allow(clippy::result_large_err)]
     fn unlock_v4(self, key: &crypto::CompositeKey) -> Result<Kdbx<Unlocked>, FailedUnlock> {
         let composed_key = key.composed();
         let master_key = match composed_key.master_key(&self.header().kdf_params) {
