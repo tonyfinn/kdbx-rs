@@ -9,7 +9,7 @@ repository = "https://gitlab.com/tonyfinn/kdbx-rs"
 license = "GPL-3.0+"
 keywords = ["kdbx", "keepass", "password", "parser"]
 categories = ["encoding", "parser-implementations"]
-rust-version = "1.56.1"
+rust-version = "1.57.0"
 
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
