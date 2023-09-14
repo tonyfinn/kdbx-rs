@@ -1,10 +1,15 @@
 # Changelog
 
+## 0.5.1
+
+- Bump declared MSRV version to match actual version from `chrono`
+
 ## 0.5.0
 
 - Dependency updates to remove time 0.1.0 
   [!6](https://gitlab.com/tonyfinn/kdbx-rs/-/merge_requests/6) - [Samuel
   Tardieu](https://gitlab.com/samueltardieu)
+    - Note: MSRV raised to 0.57.0
 
 
 ## 0.4.0
