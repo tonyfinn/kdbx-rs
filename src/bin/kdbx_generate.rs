@@ -11,11 +11,26 @@ use std::path::PathBuf;
 use uuid::Uuid;
 
 fn set_sample_times(times: &mut Times) {
-    times.last_access_time = NaiveDate::from_ymd_opt(2020, 5, 1).unwrap().and_hms_opt(1, 2, 3).unwrap();
-    times.last_modification_time = NaiveDate::from_ymd_opt(2020, 4, 1).unwrap().and_hms_opt(1, 2, 3).unwrap();
-    times.creation_time = NaiveDate::from_ymd_opt(2020, 4, 1).unwrap().and_hms_opt(1, 1, 3).unwrap();
-    times.location_changed = NaiveDate::from_ymd_opt(2020, 4, 1).unwrap().and_hms_opt(1, 1, 3).unwrap();
-    times.expiry_time = NaiveDate::from_ymd_opt(2020, 4, 1).unwrap().and_hms_opt(1, 1, 3).unwrap();
+    times.last_access_time = NaiveDate::from_ymd_opt(2020, 5, 1)
+        .unwrap()
+        .and_hms_opt(1, 2, 3)
+        .unwrap();
+    times.last_modification_time = NaiveDate::from_ymd_opt(2020, 4, 1)
+        .unwrap()
+        .and_hms_opt(1, 2, 3)
+        .unwrap();
+    times.creation_time = NaiveDate::from_ymd_opt(2020, 4, 1)
+        .unwrap()
+        .and_hms_opt(1, 1, 3)
+        .unwrap();
+    times.location_changed = NaiveDate::from_ymd_opt(2020, 4, 1)
+        .unwrap()
+        .and_hms_opt(1, 1, 3)
+        .unwrap();
+    times.expiry_time = NaiveDate::from_ymd_opt(2020, 4, 1)
+        .unwrap()
+        .and_hms_opt(1, 1, 3)
+        .unwrap();
     times.expires = false;
     times.usage_count = 1;
 }

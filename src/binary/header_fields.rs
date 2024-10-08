@@ -277,7 +277,7 @@ impl From<KdfParams> for VariantDict {
                     "$UUID".into(),
                     variant_dict::Value::Array(uuid.as_bytes().to_vec()),
                 );
-                vdict.extend(params.into_iter())
+                vdict.extend(params)
             }
         }
         vdict

@@ -105,9 +105,9 @@ pub(crate) fn argon2_algo_to_variant(algo: KdfAlgorithm) -> argon2::Variant {
 /// Convert a Argon2 [`Variant`](argon2::Variant) into the corresponding
 /// [`KdfAlgorithm`]. Only Argon2d and Argon2id algorithms are supported.
 pub(crate) fn argon2_variant_to_algo(variant: argon2::Variant) -> KdfAlgorithm {
-   match variant {
-    argon2::Variant::Argon2d => KdfAlgorithm::Argon2d,
-    argon2::Variant::Argon2id => KdfAlgorithm::Argon2id,
-    v => panic!("invalid variant {:?}", v),
-   } 
+    match variant {
+        argon2::Variant::Argon2d => KdfAlgorithm::Argon2d,
+        argon2::Variant::Argon2id => KdfAlgorithm::Argon2id,
+        v => panic!("invalid variant {:?}", v),
+    }
 }
