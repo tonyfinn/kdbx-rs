@@ -1,5 +1,6 @@
 use super::decoders::{encode_datetime, encode_uuid};
 use crate::database::{Database, Entry, Field, Group, MemoryProtection, Meta, Times, Value};
+use base64::prelude::{Engine, BASE64_STANDARD};
 use cipher::StreamCipher;
 use std::io::Write;
 use thiserror::Error;
@@ -52,7 +53,7 @@ fn write_field<W: Write, S: StreamCipher + ?Sized>(
             stream_cipher
                 .try_apply_keystream(&mut encrypt_buf)
                 .map_err(|e| Error::Cipher(format!("Encryption cipher failed: {}", e)))?;
-            let encrypted = base64::encode(&encrypt_buf);
+            let encrypted = BASE64_STANDARD.encode(&encrypt_buf);
             writer.write(XmlEvent::characters(&encrypted))?;
             writer.write(XmlEvent::end_element())?;
         }

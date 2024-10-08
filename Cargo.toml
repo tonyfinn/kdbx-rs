@@ -14,12 +14,12 @@ rust-version = "1.57.0"
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
 [dependencies]
-base64 = "0.13.1"
-chrono = "0.4.30"
-derive_more = "0.99.17"
+base64 = "0.22.1"
+chrono = "0.4.38"
+derive_more = { version = "1.0", features = ["from", "try_from", "into", "try_into"] }
 thiserror = "1.0"
-uuid = { version = "1.2.1", features = ["v4"] }
-xml-rs = "0.8.4"
+uuid = { version = "1.10", features = ["v4"] }
+xml-rs = "0.8.22"
 rand = "0.8"
 
 libflate = "1.2"

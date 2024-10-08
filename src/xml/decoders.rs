@@ -1,3 +1,4 @@
+use base64::prelude::{Engine, BASE64_STANDARD};
 use chrono::{DateTime, Duration, NaiveDate, NaiveDateTime};
 use uuid::Uuid;
 
@@ -12,12 +13,12 @@ pub fn keepass_epoch() -> NaiveDateTime {
 ///
 /// The UUID in Keepass XML files is stored base 64 encoded
 pub fn decode_uuid(b64uuid: &str) -> Option<Uuid> {
-    let decoded = base64::decode(b64uuid).ok()?;
+    let decoded = BASE64_STANDARD.decode(b64uuid).ok()?;
     Uuid::from_slice(&decoded).ok()
 }
 
 pub(crate) fn decode_datetime_b64(b64date: &str) -> Option<NaiveDateTime> {
-    let decoded = base64::decode(b64date).ok()?;
+    let decoded = BASE64_STANDARD.decode(b64date).ok()?;
     let mut bytes = [0u8; 8];
     let copy_size = usize::min(bytes.len(), decoded.len());
     bytes[..copy_size].copy_from_slice(&decoded[..copy_size]);
@@ -41,11 +42,11 @@ pub fn decode_datetime(strdate: &str) -> Option<NaiveDateTime> {
 
 /// Encode a UUID for a Keepass XML file for kdbx4
 pub fn encode_uuid(uuid: Uuid) -> String {
-    base64::encode(uuid.as_bytes())
+    BASE64_STANDARD.encode(uuid.as_bytes())
 }
 
 /// Encode a datetime for a Keepass XML file for kdbx4
 pub fn encode_datetime(date: NaiveDateTime) -> String {
     let epoch_seconds = date.signed_duration_since(keepass_epoch()).num_seconds();
-    base64::encode(epoch_seconds.to_le_bytes())
+    BASE64_STANDARD.encode(epoch_seconds.to_le_bytes())
 }

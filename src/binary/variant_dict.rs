@@ -1,7 +1,6 @@
 use crate::utils::buffer;
 use derive_more::TryInto;
 use std::collections::HashMap;
-use std::convert::TryInto;
 use std::io::{self, Read};
 use thiserror::Error;
 

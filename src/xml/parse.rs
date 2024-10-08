@@ -2,6 +2,7 @@ use super::decoders::{decode_datetime, decode_uuid};
 use crate::database::{
     Database, Entry, Field, Group, History, MemoryProtection, Meta, Times, Value,
 };
+use base64::prelude::{Engine, BASE64_STANDARD};
 use chrono::NaiveDateTime;
 use cipher::StreamCipher;
 use std::io::Read;
@@ -114,7 +115,7 @@ fn parse_field<R: Read, S: StreamCipher + ?Sized>(
                     if protected {
                         // Would be nice to avoid the clone but it gets moved into the map_err closure
                         let key_clone = field.key.clone();
-                        match base64::decode(&contents) {
+                        match BASE64_STANDARD.decode(&contents) {
                             Ok(mut decoded) => {
                                 stream_cipher
                                     .try_apply_keystream(decoded.as_mut())
