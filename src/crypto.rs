@@ -80,7 +80,6 @@ impl ComposedKey {
                         .map_err(|e| KeyGenerationError::KeyGeneration(e.to_string()))?,
                     lanes: *lanes,
                     mem_cost: (memory_bytes / 1024) as u32,
-                    thread_mode: argon2::ThreadMode::Parallel,
                     time_cost: *iterations as u32,
                     ..Default::default()
                 };
