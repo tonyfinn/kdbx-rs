@@ -2,7 +2,7 @@
   description = "Keepass Library for Rust";
 
   inputs = {
-    nixpkgs.url = "nixpkgs/nixos-23.11";
+    nixpkgs.url = "nixpkgs/nixos-24.05";
     flake-utils.url = "github:numtide/flake-utils";
     rust-overlay.url = "github:oxalica/rust-overlay";
   };
@@ -38,6 +38,7 @@
             cargo
             rustc
             clippy
+            alejandra
           ];
           RUST_SRC_PATH = pkgs.rustPlatform.rustLibSrc;
         };
