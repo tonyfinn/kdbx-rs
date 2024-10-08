@@ -309,7 +309,7 @@ dependencies = [
 
 [[package]]
 name = "kdbx-rs"
-version = "0.5.1"
+version = "0.5.2"
 dependencies = [
  "aes",
  "base64 0.22.1",

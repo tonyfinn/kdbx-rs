@@ -1,5 +1,22 @@
 # Changelog
 
+## 0.5.2
+
+- Updated dependencies
+  - rust-argon2 1.0 -> 2.1.0
+  - aes 0.8.2 -> 0.8.4
+  - chacha20 0.9.1 -> 0.9.1
+  - cipher 0.4.3 -> 0.4.4
+  - sha2 0.10.6 -> 0.10.8
+  - base64 0.13.1 -> 0.22.1
+  - derive_more 0.99.17 -> 1.0.0
+  - uuid 1.2.1 -> 1.10.0
+  - xml-rs 0.8.4 -> 0.8.22
+- Nix build changes
+  - nixpkgs 23.11 -> 24.05
+  - Add alejandra formatter
+  - Setup .envrc for nix-direnv use
+
 ## 0.5.1
 
 - Bump declared MSRV version to match actual version from `chrono`
