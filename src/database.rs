@@ -311,12 +311,12 @@ impl Entry {
         self.fields.iter_mut()
     }
 
-    /// Iterate through all the fields
+    /// History for this entry
     pub fn history(&self) -> &History {
         &self.history
     }
 
-    /// Iterate through all the field mutably
+    /// Mutable history for this entry
     pub fn history_mut(&mut self) -> &mut History {
         &mut self.history
     }
